@@ -4,7 +4,6 @@
 //
 //  Snap your fridge. Cook what you have. Waste nothing.
 //
-// comment 1
 import SwiftUI
 import SwiftData
 import UserNotifications
