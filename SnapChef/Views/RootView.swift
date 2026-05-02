@@ -22,9 +22,9 @@ struct RootView: View {
 struct MainTabView: View {
     var body: some View {
         TabView {
-            PantryView()
+            SnapView()
                 .tabItem {
-                    Label("Pantry", systemImage: "cabinet.fill")
+                    Label("Snap", systemImage: "camera.fill")
                 }
 
             RecipesView()
@@ -32,9 +32,9 @@ struct MainTabView: View {
                     Label("Recipes", systemImage: "fork.knife")
                 }
 
-            SnapView()
+            PantryView()
                 .tabItem {
-                    Label("Snap", systemImage: "camera.fill")
+                    Label("Pantry", systemImage: "cabinet.fill")
                 }
 
             ProfileView()
