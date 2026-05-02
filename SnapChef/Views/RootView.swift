@@ -43,5 +43,12 @@ struct MainTabView: View {
                 }
         }
         .tint(Theme.forestGreen)
+        .onAppear {
+            let appearance = UITabBarAppearance()
+            appearance.configureWithDefaultBackground()
+            appearance.backgroundColor = UIColor(Theme.cream.opacity(0.92))
+            UITabBar.appearance().standardAppearance = appearance
+            UITabBar.appearance().scrollEdgeAppearance = appearance
+        }
     }
 }

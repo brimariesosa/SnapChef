@@ -25,9 +25,10 @@ struct SnapView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Theme.cream.opacity(0.4).ignoresSafeArea()
+                Theme.appBackgroundGradient.ignoresSafeArea()
+                DecorativeBlobs().ignoresSafeArea()
 
-                VStack(spacing: 24) {
+                VStack(spacing: 22) {
                     heroCard
 
                     if let image = capturedImage {
@@ -97,12 +98,12 @@ struct SnapView: View {
     }
 
     private var heroCard: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 6) {
             Text("Point and snap")
-                .font(.system(size: 22, weight: .bold))
+                .font(.display(28))
                 .foregroundStyle(Theme.forestGreenDark)
-            Text("SnapChef AI identifies every ingredient automatically.")
-                .font(.system(size: 14))
+            Text("SnapChef AI identifies every ingredient in seconds.")
+                .font(.system(size: 14, design: .rounded))
                 .foregroundStyle(Theme.warmGray)
                 .multilineTextAlignment(.center)
         }
@@ -110,32 +111,64 @@ struct SnapView: View {
     }
 
     private var placeholderView: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "camera.viewfinder")
-                .font(.system(size: 80, weight: .light))
-                .foregroundStyle(Theme.sage)
+        ZStack {
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Theme.forestGreen.opacity(0.08),
+                            Theme.mint.opacity(0.16),
+                            Theme.peach.opacity(0.18)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 28, style: .continuous)
+                        .strokeBorder(
+                            Theme.forestGreen.opacity(0.35),
+                            style: StrokeStyle(lineWidth: 2, dash: [10])
+                        )
+                )
 
-            Text("No photo yet")
-                .font(.system(size: 15))
-                .foregroundStyle(Theme.warmGray)
+            PulsingRing(color: Theme.forestGreen, size: 220)
+
+            VStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(Theme.primaryGradient)
+                        .frame(width: 92, height: 92)
+                        .shadow(color: Theme.forestGreen.opacity(0.35), radius: 14, y: 6)
+                    Image(systemName: "camera.viewfinder")
+                        .font(.system(size: 44, weight: .semibold))
+                        .foregroundStyle(.white)
+                }
+
+                Text("Ready to scan")
+                    .font(.display(18))
+                    .foregroundStyle(Theme.forestGreenDark)
+                Text("Snap or pick a photo to get started")
+                    .font(.system(size: 13, design: .rounded))
+                    .foregroundStyle(Theme.warmGray)
+            }
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 280)
-        .background(Theme.forestGreen.opacity(0.05))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(Theme.forestGreen.opacity(0.3), style: StrokeStyle(lineWidth: 2, dash: [8]))
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .frame(height: 300)
     }
 
     private func capturedImageView(_ image: UIImage) -> some View {
         Image(uiImage: image)
             .resizable()
             .scaledToFill()
-            .frame(height: 280)
+            .frame(height: 300)
             .frame(maxWidth: .infinity)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .stroke(.white.opacity(0.6), lineWidth: 2)
+            )
+            .shadow(color: .black.opacity(0.12), radius: 14, y: 6)
     }
 
     private var actionButtons: some View {
@@ -149,7 +182,7 @@ struct SnapView: View {
                     }
                 }
             } label: {
-                HStack {
+                HStack(spacing: 10) {
                     Image(systemName: "camera.fill")
                     Text("Take Photo")
                 }
@@ -159,7 +192,7 @@ struct SnapView: View {
             Button {
                 showingPhotoLibrary = true
             } label: {
-                HStack {
+                HStack(spacing: 10) {
                     Image(systemName: "photo.on.rectangle")
                     Text("Choose from Library")
                 }
@@ -169,19 +202,23 @@ struct SnapView: View {
             Button {
                 showingDemoLibrary = true
             } label: {
-                HStack {
+                HStack(spacing: 6) {
                     Image(systemName: "sparkles")
                     Text("Demo Library")
                 }
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(Theme.forestGreen)
+                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                .foregroundStyle(Theme.berry)
+                .padding(.vertical, 8)
+                .padding(.horizontal, 16)
+                .background(Theme.berry.opacity(0.12))
+                .clipShape(Capsule())
             }
 
             if capturedImage != nil && !isScanning && detectedItems.isEmpty {
                 Button("Scan Again") {
                     Task { await scanImage() }
                 }
-                .font(.system(size: 14))
+                .font(.system(size: 14, design: .rounded))
                 .foregroundStyle(Theme.forestGreen)
             }
         }
@@ -192,19 +229,23 @@ struct SnapView: View {
             Color.black.opacity(0.5).ignoresSafeArea()
 
             VStack(spacing: 20) {
-                ProgressView()
-                    .scaleEffect(1.5)
-                    .tint(.white)
+                ZStack {
+                    PulsingRing(color: .white, size: 120)
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 36, weight: .bold))
+                        .foregroundStyle(.white)
+                }
+
                 Text("Identifying ingredients...")
-                    .font(.system(size: 16, weight: .medium))
+                    .font(.display(18))
                     .foregroundStyle(.white)
                 Text("AI is analyzing your photo")
-                    .font(.system(size: 13))
-                    .foregroundStyle(.white.opacity(0.8))
+                    .font(.system(size: 13, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.85))
             }
-            .padding(32)
+            .padding(36)
             .background(.ultraThinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 20))
+            .clipShape(RoundedRectangle(cornerRadius: 24))
         }
     }
 

@@ -38,7 +38,12 @@ struct ProfileView: View {
                 .padding(16)
                 .padding(.bottom, 40)
             }
-            .background(Theme.cream.opacity(0.4))
+            .background(
+                ZStack {
+                    Theme.appBackgroundGradient.ignoresSafeArea()
+                    DecorativeBlobs().ignoresSafeArea()
+                }
+            )
             .navigationTitle("Profile")
             .sheet(isPresented: $showingDietSheet) {
                 if let profile = currentProfile {
@@ -56,31 +61,39 @@ struct ProfileView: View {
     }
 
     private var headerCard: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 14) {
             ZStack {
                 Circle()
-                    .fill(LinearGradient(
-                        colors: [Theme.forestGreen, Theme.forestGreenLight],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ))
-                    .frame(width: 90, height: 90)
+                    .fill(Theme.primaryGradient)
+                    .frame(width: 110, height: 110)
+                    .shadow(color: Theme.forestGreen.opacity(0.4), radius: 18, y: 8)
                 Image(systemName: "leaf.fill")
-                    .font(.system(size: 40))
+                    .font(.system(size: 48, weight: .semibold))
                     .foregroundStyle(.white)
             }
 
             Text("SnapChef User")
-                .font(.system(size: 20, weight: .bold))
+                .font(.display(22))
+                .foregroundStyle(Theme.forestGreenDark)
 
             Text("Cooking smarter, wasting less")
-                .font(.system(size: 13))
+                .font(.system(size: 13, design: .rounded))
                 .foregroundStyle(Theme.warmGray)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 24)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .padding(.vertical, 28)
+        .background(
+            ZStack {
+                Color.white
+                LinearGradient(
+                    colors: [Theme.peach.opacity(0.18), .clear, Theme.mint.opacity(0.18)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 22))
+        .shadow(color: .black.opacity(0.05), radius: 12, y: 4)
     }
 
     private var statsCard: some View {
