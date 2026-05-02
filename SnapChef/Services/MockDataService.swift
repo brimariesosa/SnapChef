@@ -69,7 +69,10 @@ final class MockDataService {
             DetectedIngredient(name: "Onion", confidence: 0.95, category: "Produce", suggestedShelfLife: 30),
             DetectedIngredient(name: "Garlic", confidence: 0.90, category: "Produce", suggestedShelfLife: 30),
             DetectedIngredient(name: "Cheddar Cheese", confidence: 0.84, category: "Dairy", suggestedShelfLife: 21),
-            DetectedIngredient(name: "Carrot", confidence: 0.89, category: "Produce", suggestedShelfLife: 14)
+            DetectedIngredient(name: "Carrot", confidence: 0.89, category: "Produce", suggestedShelfLife: 14),
+            DetectedIngredient(name: "Soy Sauce", confidence: 0.92, category: "Spices & Condiments", suggestedShelfLife: 365),
+            DetectedIngredient(name: "Black Pepper", confidence: 0.91, category: "Spices & Condiments", suggestedShelfLife: 730),
+            DetectedIngredient(name: "Mustard", confidence: 0.88, category: "Spices & Condiments", suggestedShelfLife: 365)
         ]
 
         return Array(pool.shuffled().prefix(Int.random(in: 3...6)))
