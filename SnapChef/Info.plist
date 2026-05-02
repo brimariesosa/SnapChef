@@ -6,6 +6,8 @@
     <string>SnapChef needs camera access to identify ingredients in your fridge.</string>
     <key>NSPhotoLibraryUsageDescription</key>
     <string>SnapChef needs photo library access so you can scan existing fridge photos.</string>
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>SnapChef saves demo recipe photos to your library so you can pick them during a demo.</string>
     <key>UILaunchScreen</key>
     <dict>
         <key>UIColorName</key>

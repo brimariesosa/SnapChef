@@ -77,14 +77,64 @@ final class MockDataService {
 
         return Array(pool.shuffled().prefix(Int.random(in: 3...6)))
     }
+
+    // Used by the in-app Demo Library so a known photo always
+    // surfaces the exact ingredients of the matching recipe.
+    func identifyIngredients(for recipe: Recipe) async -> [DetectedIngredient] {
+        try? await Task.sleep(nanoseconds: 1_000_000_000)
+        return recipe.ingredients.map { ing in
+            DetectedIngredient(
+                name: ing.name,
+                confidence: Double.random(in: 0.86...0.97),
+                category: bestCategory(for: ing.name),
+                suggestedShelfLife: shelfLife(for: ing.name)
+            )
+        }
+    }
+
+    private func bestCategory(for name: String) -> String {
+        let n = name.lowercased()
+        if ["chicken", "beef", "pork", "turkey"].contains(where: { n.contains($0) }) { return "Meat" }
+        if ["fish", "salmon", "tuna", "shrimp"].contains(where: { n.contains($0) }) { return "Seafood" }
+        if ["milk", "cheese", "egg", "butter", "yogurt", "cream"].contains(where: { n.contains($0) }) { return "Dairy" }
+        if ["rice", "bread", "pasta", "breadcrumbs", "flour", "oats", "noodle"].contains(where: { n.contains($0) }) { return "Grains" }
+        if ["soy sauce", "salt", "pepper", "mustard", "ketchup", "olive oil",
+            "rosemary", "thyme", "garlic powder", "basil", "oregano", "vinegar"].contains(where: { n.contains($0) }) { return "Spices & Condiments" }
+        return "Produce"
+    }
+
+    private func shelfLife(for name: String) -> Int {
+        let n = name.lowercased()
+        if ["chicken", "fish", "beef", "pork", "shrimp", "salmon", "tuna"].contains(where: { n.contains($0) }) { return 3 }
+        if n.contains("milk") { return 7 }
+        if ["cheese", "egg", "yogurt", "butter"].contains(where: { n.contains($0) }) { return 21 }
+        if ["bread", "rice", "pasta", "breadcrumbs", "flour", "oats"].contains(where: { n.contains($0) }) { return 30 }
+        if ["soy sauce", "salt", "pepper", "mustard", "ketchup", "olive oil",
+            "vinegar", "rosemary", "thyme", "basil", "oregano"].contains(where: { n.contains($0) }) { return 365 }
+        return 7
+    }
 }
 
 struct DetectedIngredient: Identifiable, Hashable {
-    let id = UUID()
-    let name: String
-    let confidence: Double
-    let category: String
-    let suggestedShelfLife: Int
+    let id: UUID
+    var name: String
+    var confidence: Double
+    var category: String
+    var suggestedShelfLife: Int
+
+    init(
+        id: UUID = UUID(),
+        name: String,
+        confidence: Double,
+        category: String,
+        suggestedShelfLife: Int
+    ) {
+        self.id = id
+        self.name = name
+        self.confidence = confidence
+        self.category = category
+        self.suggestedShelfLife = suggestedShelfLife
+    }
 }
 
 // MARK: - Sample Recipes

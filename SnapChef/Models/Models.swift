@@ -155,8 +155,12 @@ struct Recipe: Identifiable, Hashable, Codable {
     var totalTime: Int { prepTime + cookTime }
 
     func matchScore(pantry: [PantryItem]) -> Double {
-        let pantryNames = Set(pantry.map { $0.name.lowercased() })
-        let matched = ingredients.filter { pantryNames.contains($0.name.lowercased()) }
+        matchScore(pantryNames: pantry.map { $0.name })
+    }
+
+    func matchScore(pantryNames: [String]) -> Double {
+        let names = Set(pantryNames.map { $0.lowercased() })
+        let matched = ingredients.filter { names.contains($0.name.lowercased()) }
         guard !ingredients.isEmpty else { return 0 }
         return Double(matched.count) / Double(ingredients.count)
     }
