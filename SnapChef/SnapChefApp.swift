@@ -15,6 +15,7 @@ struct SnapChefApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             PantryItem.self,
+            PantryBatch.self,
             DietaryProfile.self,
             KitchenEquipment.self
         ])

@@ -272,13 +272,23 @@ struct SnapView: View {
                 value: detected.suggestedShelfLife,
                 to: Date()
             )
-            let item = PantryItem(
-                name: detected.name,
-                category: detected.category,
-                expirationDate: expDate
-            )
-            context.insert(item)
-            NotificationService.shared.scheduleExpirationAlert(for: item)
+
+            if let existing = pantryItems.first(where: {
+                $0.name.localizedCaseInsensitiveCompare(detected.name) == .orderedSame
+            }) {
+                existing.appendBatch(quantity: 1, expirationDate: expDate, in: context)
+                NotificationService.shared.scheduleExpirationAlert(for: existing)
+            } else {
+                let item = PantryItem(
+                    name: detected.name,
+                    quantity: 0,
+                    category: detected.category,
+                    expirationDate: nil
+                )
+                context.insert(item)
+                item.appendBatch(quantity: 1, expirationDate: expDate, in: context)
+                NotificationService.shared.scheduleExpirationAlert(for: item)
+            }
         }
     }
 
@@ -457,6 +467,11 @@ struct ScanResultsView: View {
     @State private var showingAddCustom = false
     @State private var didAdd = false
 
+    @State private var showingDuplicateSheet = false
+    @State private var pendingFresh: [DetectedIngredient] = []
+    @State private var pendingDuplicates: [DuplicateChoice] = []
+    @State private var duplicateChoices: [UUID: Bool] = [:]
+
     init(
         detectedItems: [DetectedIngredient],
         matchedRecipe: Recipe?,
@@ -509,8 +524,7 @@ struct ScanResultsView: View {
                 if !didAdd {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button("Add \(selectedItems.count)") {
-                            onAdd(selectedItems)
-                            withAnimation { didAdd = true }
+                            handleAddTapped()
                         }
                         .fontWeight(.semibold)
                         .disabled(selectedItems.isEmpty)
@@ -523,7 +537,73 @@ struct ScanResultsView: View {
                     selected.insert(newItem.id)
                 }
             }
+            .sheet(isPresented: $showingDuplicateSheet) {
+                DuplicateConfirmationSheet(
+                    duplicates: pendingDuplicates,
+                    choices: $duplicateChoices,
+                    onConfirm: confirmDuplicates,
+                    onCancel: {
+                        showingDuplicateSheet = false
+                        pendingFresh = []
+                        pendingDuplicates = []
+                        duplicateChoices = [:]
+                    }
+                )
+            }
         }
+    }
+
+    // MARK: - Add flow
+
+    private func handleAddTapped() {
+        let chosen = selectedItems
+        var fresh: [DetectedIngredient] = []
+        var duplicates: [DuplicateChoice] = []
+
+        for detected in chosen {
+            if let existing = pantryItems.first(where: {
+                $0.name.localizedCaseInsensitiveCompare(detected.name) == .orderedSame
+            }) {
+                duplicates.append(DuplicateChoice(detected: detected, existing: existing))
+            } else {
+                fresh.append(detected)
+            }
+        }
+
+        if duplicates.isEmpty {
+            commit(fresh)
+            return
+        }
+
+        pendingFresh = fresh
+        pendingDuplicates = duplicates
+        duplicateChoices = Dictionary(
+            uniqueKeysWithValues: duplicates.map { ($0.detected.id, true) }
+        )
+        showingDuplicateSheet = true
+    }
+
+    private func confirmDuplicates() {
+        let confirmed = pendingDuplicates
+            .filter { duplicateChoices[$0.detected.id] == true }
+            .map { $0.detected }
+        let toCommit = pendingFresh + confirmed
+
+        showingDuplicateSheet = false
+        pendingFresh = []
+        pendingDuplicates = []
+        duplicateChoices = [:]
+
+        commit(toCommit)
+    }
+
+    private func commit(_ confirmed: [DetectedIngredient]) {
+        guard !confirmed.isEmpty else {
+            withAnimation { didAdd = true }
+            return
+        }
+        onAdd(confirmed)
+        withAnimation { didAdd = true }
     }
 
     private var headerInfo: some View {
@@ -559,6 +639,7 @@ struct ScanResultsView: View {
                         DetectionRow(
                             item: item,
                             isSelected: selected.contains(item.id),
+                            isAlreadyInPantry: existingItem(for: item) != nil,
                             onToggle: {
                                 if selected.contains(item.id) {
                                     selected.remove(item.id)
@@ -632,6 +713,157 @@ struct ScanResultsView: View {
         }
         return $items[index]
     }
+
+    private func existingItem(for detected: DetectedIngredient) -> PantryItem? {
+        pantryItems.first {
+            $0.name.localizedCaseInsensitiveCompare(detected.name) == .orderedSame
+        }
+    }
+}
+
+// MARK: - Duplicate confirmation
+
+struct DuplicateChoice: Identifiable, Hashable {
+    let detected: DetectedIngredient
+    let existing: PantryItem
+    var id: UUID { detected.id }
+}
+
+struct DuplicateConfirmationSheet: View {
+    let duplicates: [DuplicateChoice]
+    @Binding var choices: [UUID: Bool]
+    let onConfirm: () -> Void
+    let onCancel: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    var addCount: Int {
+        duplicates.filter { choices[$0.detected.id] == true }.count
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack(spacing: 10) {
+                        ZStack {
+                            Circle()
+                                .fill(Theme.sunsetGradient)
+                                .frame(width: 44, height: 44)
+                            Image(systemName: "tray.full.fill")
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundStyle(.white)
+                        }
+                        Text("These items are already in your pantry. Want to add another batch with a fresh expiration date?")
+                            .font(.system(size: 14, design: .rounded))
+                            .foregroundStyle(Theme.warmGray)
+                    }
+
+                    VStack(spacing: 10) {
+                        ForEach(duplicates) { dup in
+                            DuplicateRow(
+                                dup: dup,
+                                isOn: Binding(
+                                    get: { choices[dup.detected.id] ?? true },
+                                    set: { choices[dup.detected.id] = $0 }
+                                )
+                            )
+                        }
+                    }
+
+                    Button(action: onConfirm) {
+                        Text(addCount > 0 ? "Add \(addCount) batch\(addCount == 1 ? "" : "es")" : "Skip All")
+                            .primaryButton()
+                    }
+                    .padding(.top, 6)
+                }
+                .padding(16)
+            }
+            .background(
+                ZStack {
+                    Theme.appBackgroundGradient.ignoresSafeArea()
+                    DecorativeBlobs().ignoresSafeArea()
+                }
+            )
+            .navigationTitle("Already in pantry")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Cancel") {
+                        onCancel()
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
+struct DuplicateRow: View {
+    let dup: DuplicateChoice
+    @Binding var isOn: Bool
+
+    var category: FoodCategory? { FoodCategory(rawValue: dup.existing.category) }
+    var tint: Color { category?.color ?? Theme.forestGreen }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(category?.gradient ?? Theme.primaryGradient)
+                    .frame(width: 40, height: 40)
+                    .shadow(color: tint.opacity(0.3), radius: 5, y: 2)
+                Image(systemName: category?.icon ?? "bag.fill")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(dup.existing.name)
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .foregroundStyle(Theme.forestGreenDark)
+
+                HStack(spacing: 6) {
+                    Text("Currently \(quantityText)")
+                    if let suffix = expirationText {
+                        Text("•")
+                        Text(suffix)
+                            .foregroundStyle(colorFor(status: dup.existing.expirationStatus))
+                    }
+                }
+                .font(.system(size: 12, design: .rounded))
+                .foregroundStyle(Theme.warmGray)
+            }
+
+            Spacer()
+
+            Toggle("", isOn: $isOn)
+                .labelsHidden()
+                .tint(Theme.forestGreen)
+        }
+        .padding(12)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(tint.opacity(0.18), lineWidth: 1)
+        )
+    }
+
+    private var quantityText: String {
+        let qty = dup.existing.totalQuantity
+        let formatted = qty.truncatingRemainder(dividingBy: 1) == 0
+            ? String(Int(qty))
+            : String(format: "%.1f", qty)
+        return "\(formatted) \(dup.existing.unit)"
+    }
+
+    private var expirationText: String? {
+        guard let days = dup.existing.daysUntilExpiration else { return nil }
+        if days < 0 { return "earliest expired" }
+        if days == 0 { return "earliest today" }
+        return "earliest \(days)d"
+    }
 }
 
 // MARK: - Detection rows
@@ -639,6 +871,7 @@ struct ScanResultsView: View {
 struct DetectionRow: View {
     let item: DetectedIngredient
     let isSelected: Bool
+    var isAlreadyInPantry: Bool = false
     let onToggle: () -> Void
     let onEdit: () -> Void
 
@@ -659,20 +892,32 @@ struct DetectionRow: View {
                 .clipShape(RoundedRectangle(cornerRadius: 10))
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(item.name)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(.primary)
+                HStack(spacing: 6) {
+                    Text(item.name)
+                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.primary)
+
+                    if isAlreadyInPantry {
+                        Text("in pantry")
+                            .font(.system(size: 10, weight: .bold, design: .rounded))
+                            .foregroundStyle(Theme.accent)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Theme.accent.opacity(0.15))
+                            .clipShape(Capsule())
+                    }
+                }
 
                 HStack(spacing: 8) {
                     Text(item.category)
-                        .font(.system(size: 12))
+                        .font(.system(size: 12, design: .rounded))
                         .foregroundStyle(Theme.warmGray)
 
                     Text("•")
                         .foregroundStyle(Theme.warmGray)
 
                     Text("\(Int(item.confidence * 100))% confidence")
-                        .font(.system(size: 12))
+                        .font(.system(size: 12, design: .rounded))
                         .foregroundStyle(.green)
                 }
             }

@@ -22,7 +22,9 @@ final class NotificationService {
     }
 
     func scheduleExpirationAlert(for item: PantryItem) {
-        guard let expDate = item.expirationDate else { return }
+        cancelAlert(for: item)
+
+        guard let expDate = item.earliestExpirationDate else { return }
 
         let alertDate = Calendar.current.date(byAdding: .day, value: -2, to: expDate) ?? expDate
         guard alertDate > Date() else { return }

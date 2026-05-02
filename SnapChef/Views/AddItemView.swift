@@ -11,6 +11,7 @@ import SwiftData
 struct AddItemView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
+    @Query private var existingItems: [PantryItem]
 
     @State private var name = ""
     @State private var quantity: Double = 1
@@ -76,15 +77,27 @@ struct AddItemView: View {
     }
 
     private func save() {
-        let item = PantryItem(
-            name: name.trimmingCharacters(in: .whitespaces),
-            quantity: quantity,
-            unit: unit,
-            category: category.rawValue,
-            expirationDate: hasExpiration ? expirationDate : nil
-        )
-        context.insert(item)
-        NotificationService.shared.scheduleExpirationAlert(for: item)
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        let exp = hasExpiration ? expirationDate : nil
+
+        if let existing = existingItems.first(where: {
+            $0.name.localizedCaseInsensitiveCompare(trimmed) == .orderedSame
+        }) {
+            existing.appendBatch(quantity: quantity, expirationDate: exp, in: context)
+            NotificationService.shared.scheduleExpirationAlert(for: existing)
+        } else {
+            let item = PantryItem(
+                name: trimmed,
+                quantity: 0,
+                unit: unit,
+                category: category.rawValue,
+                expirationDate: nil
+            )
+            context.insert(item)
+            item.appendBatch(quantity: quantity, expirationDate: exp, in: context)
+            NotificationService.shared.scheduleExpirationAlert(for: item)
+        }
+
         dismiss()
     }
 }

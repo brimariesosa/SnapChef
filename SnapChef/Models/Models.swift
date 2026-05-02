@@ -19,6 +19,9 @@ final class PantryItem {
     var expirationDate: Date?
     var imageName: String?
 
+    @Relationship(deleteRule: .cascade, inverse: \PantryBatch.item)
+    var batches: [PantryBatch] = []
+
     init(
         id: UUID = UUID(),
         name: String,
@@ -39,10 +42,92 @@ final class PantryItem {
         self.imageName = imageName
     }
 
+    /// Total quantity across all batches; falls back to the legacy `quantity`
+    /// field when no batches have been recorded yet.
+    var totalQuantity: Double {
+        batches.isEmpty ? quantity : batches.reduce(0) { $0 + $1.quantity }
+    }
+
+    /// Earliest expiration across batches, falling back to legacy `expirationDate`.
+    var earliestExpirationDate: Date? {
+        let dates = batches.compactMap { $0.expirationDate }
+        if !dates.isEmpty { return dates.min() }
+        return expirationDate
+    }
+
     var daysUntilExpiration: Int? {
-        guard let exp = expirationDate else { return nil }
+        guard let exp = earliestExpirationDate else { return nil }
         let days = Calendar.current.dateComponents([.day], from: Date(), to: exp).day
         return days
+    }
+
+    var expirationStatus: ExpirationStatus {
+        guard let days = daysUntilExpiration else { return .unknown }
+        if days < 0 { return .expired }
+        if days <= 2 { return .urgent }
+        if days <= 5 { return .soon }
+        return .fresh
+    }
+
+    /// Adds a new batch with its own expiration. If the item is a legacy item
+    /// that still stores its quantity/expiration on the parent (no batches
+    /// yet), the existing values are migrated into a seed batch first so that
+    /// nothing is lost when the new batch is appended.
+    func appendBatch(quantity: Double = 1,
+                     expirationDate: Date?,
+                     in context: ModelContext) {
+        if batches.isEmpty && self.quantity > 0 {
+            let seed = PantryBatch(
+                quantity: self.quantity,
+                dateAdded: self.dateAdded,
+                expirationDate: self.expirationDate
+            )
+            context.insert(seed)
+            self.batches.append(seed)
+            self.quantity = 0
+        }
+
+        let newBatch = PantryBatch(
+            quantity: quantity,
+            expirationDate: expirationDate
+        )
+        context.insert(newBatch)
+        self.batches.append(newBatch)
+    }
+}
+
+// MARK: - Pantry Batch (persisted)
+//
+// One PantryBatch represents a single "scan" or manual addition: a quantity
+// added at a particular time with its own expiration. A PantryItem groups
+// many batches under the same name so the pantry list stays clean while the
+// detail view can show every batch separately.
+
+@Model
+final class PantryBatch {
+    @Attribute(.unique) var id: UUID
+    var quantity: Double
+    var dateAdded: Date
+    var expirationDate: Date?
+    var item: PantryItem?
+
+    init(
+        id: UUID = UUID(),
+        quantity: Double = 1,
+        dateAdded: Date = Date(),
+        expirationDate: Date? = nil,
+        item: PantryItem? = nil
+    ) {
+        self.id = id
+        self.quantity = quantity
+        self.dateAdded = dateAdded
+        self.expirationDate = expirationDate
+        self.item = item
+    }
+
+    var daysUntilExpiration: Int? {
+        guard let exp = expirationDate else { return nil }
+        return Calendar.current.dateComponents([.day], from: Date(), to: exp).day
     }
 
     var expirationStatus: ExpirationStatus {

@@ -259,10 +259,16 @@ struct PantryItemCard: View {
                 .foregroundStyle(Theme.forestGreenDark)
                 .lineLimit(1)
 
-            HStack {
-                Text("\(formatted(item.quantity)) \(item.unit)")
+            HStack(spacing: 6) {
+                Text("\(formatted(item.totalQuantity)) \(item.unit)")
                     .font(.system(size: 13, design: .rounded))
                     .foregroundStyle(Theme.warmGray)
+
+                if item.batches.count > 1 {
+                    Text("· \(item.batches.count) batches")
+                        .font(.system(size: 11, weight: .medium, design: .rounded))
+                        .foregroundStyle(Theme.warmGray)
+                }
 
                 Spacer()
 
