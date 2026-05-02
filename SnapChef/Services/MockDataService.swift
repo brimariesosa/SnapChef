@@ -59,23 +59,39 @@ final class MockDataService {
     func identifyIngredients(from image: UIImage) async -> [DetectedIngredient] {
         try? await Task.sleep(nanoseconds: 1_500_000_000)
 
-        let pool = [
-            DetectedIngredient(name: "Tomato", confidence: 0.94, category: "Produce", suggestedShelfLife: 7),
-            DetectedIngredient(name: "Spinach", confidence: 0.91, category: "Produce", suggestedShelfLife: 5),
-            DetectedIngredient(name: "Chicken Breast", confidence: 0.88, category: "Meat", suggestedShelfLife: 3),
-            DetectedIngredient(name: "Milk", confidence: 0.96, category: "Dairy", suggestedShelfLife: 7),
-            DetectedIngredient(name: "Eggs", confidence: 0.93, category: "Dairy", suggestedShelfLife: 21),
-            DetectedIngredient(name: "Bell Pepper", confidence: 0.87, category: "Produce", suggestedShelfLife: 10),
-            DetectedIngredient(name: "Onion", confidence: 0.95, category: "Produce", suggestedShelfLife: 30),
-            DetectedIngredient(name: "Garlic", confidence: 0.90, category: "Produce", suggestedShelfLife: 30),
-            DetectedIngredient(name: "Cheddar Cheese", confidence: 0.84, category: "Dairy", suggestedShelfLife: 21),
-            DetectedIngredient(name: "Carrot", confidence: 0.89, category: "Produce", suggestedShelfLife: 14),
-            DetectedIngredient(name: "Soy Sauce", confidence: 0.92, category: "Spices & Condiments", suggestedShelfLife: 365),
-            DetectedIngredient(name: "Black Pepper", confidence: 0.91, category: "Spices & Condiments", suggestedShelfLife: 730),
-            DetectedIngredient(name: "Mustard", confidence: 0.88, category: "Spices & Condiments", suggestedShelfLife: 365)
+        let pool: [(name: String, confidence: Double, category: String)] = [
+            ("Tomato",          0.94, "Produce"),
+            ("Spinach",         0.91, "Produce"),
+            ("Chicken Breast",  0.88, "Meat"),
+            ("Milk",            0.96, "Dairy"),
+            ("Eggs",            0.93, "Dairy"),
+            ("Bell Pepper",     0.87, "Produce"),
+            ("Onion",           0.95, "Produce"),
+            ("Garlic",          0.90, "Produce"),
+            ("Cheddar Cheese",  0.84, "Dairy"),
+            ("Carrot",          0.89, "Produce"),
+            ("Salmon",          0.86, "Seafood"),
+            ("Strawberries",    0.90, "Produce"),
+            ("Avocado",         0.85, "Produce"),
+            ("Bread",           0.88, "Grains"),
+            ("Soy Sauce",       0.92, "Spices & Condiments"),
+            ("Black Pepper",    0.91, "Spices & Condiments"),
+            ("Mustard",         0.88, "Spices & Condiments")
         ]
 
-        return Array(pool.shuffled().prefix(Int.random(in: 3...6)))
+        let detected = pool.shuffled().prefix(Int.random(in: 3...6)).map { entry in
+            DetectedIngredient(
+                name: entry.name,
+                confidence: entry.confidence,
+                category: entry.category,
+                suggestedShelfLife: ExpirationDefaults.days(
+                    forName: entry.name,
+                    category: FoodCategory(rawValue: entry.category)
+                )
+            )
+        }
+
+        return Array(detected)
     }
 
     // Used by the in-app Demo Library so a known photo always
@@ -83,11 +99,15 @@ final class MockDataService {
     func identifyIngredients(for recipe: Recipe) async -> [DetectedIngredient] {
         try? await Task.sleep(nanoseconds: 1_000_000_000)
         return recipe.ingredients.map { ing in
-            DetectedIngredient(
+            let category = bestCategory(for: ing.name)
+            return DetectedIngredient(
                 name: ing.name,
                 confidence: Double.random(in: 0.86...0.97),
-                category: bestCategory(for: ing.name),
-                suggestedShelfLife: shelfLife(for: ing.name)
+                category: category,
+                suggestedShelfLife: ExpirationDefaults.days(
+                    forName: ing.name,
+                    category: FoodCategory(rawValue: category)
+                )
             )
         }
     }
@@ -101,17 +121,6 @@ final class MockDataService {
         if ["soy sauce", "salt", "pepper", "mustard", "ketchup", "olive oil",
             "rosemary", "thyme", "garlic powder", "basil", "oregano", "vinegar"].contains(where: { n.contains($0) }) { return "Spices & Condiments" }
         return "Produce"
-    }
-
-    private func shelfLife(for name: String) -> Int {
-        let n = name.lowercased()
-        if ["chicken", "fish", "beef", "pork", "shrimp", "salmon", "tuna"].contains(where: { n.contains($0) }) { return 3 }
-        if n.contains("milk") { return 7 }
-        if ["cheese", "egg", "yogurt", "butter"].contains(where: { n.contains($0) }) { return 21 }
-        if ["bread", "rice", "pasta", "breadcrumbs", "flour", "oats"].contains(where: { n.contains($0) }) { return 30 }
-        if ["soy sauce", "salt", "pepper", "mustard", "ketchup", "olive oil",
-            "vinegar", "rosemary", "thyme", "basil", "oregano"].contains(where: { n.contains($0) }) { return 365 }
-        return 7
     }
 }
 

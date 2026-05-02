@@ -18,9 +18,18 @@ struct AddItemView: View {
     @State private var unit = "item"
     @State private var category: FoodCategory = .produce
     @State private var hasExpiration = true
-    @State private var expirationDate = Calendar.current.date(byAdding: .day, value: 7, to: Date())!
+    @State private var expirationDate: Date = Calendar.current.date(
+        byAdding: .day,
+        value: ExpirationDefaults.days(for: .produce),
+        to: Date()
+    )!
+    @State private var userEditedExpiration = false
 
     let units = ["item", "lb", "oz", "cup", "tbsp", "tsp", "piece", "bunch", "container", "gallon"]
+
+    private var suggestedDays: Int {
+        ExpirationDefaults.days(forName: name, category: category)
+    }
 
     var body: some View {
         NavigationStack {
@@ -52,15 +61,32 @@ struct AddItemView: View {
                     if hasExpiration {
                         DatePicker(
                             "Expires",
-                            selection: $expirationDate,
+                            selection: Binding(
+                                get: { expirationDate },
+                                set: {
+                                    expirationDate = $0
+                                    userEditedExpiration = true
+                                }
+                            ),
                             in: Date()...,
                             displayedComponents: .date
                         )
+                        if !userEditedExpiration {
+                            Text("Suggested for \(category.rawValue): \(suggestedDays) day\(suggestedDays == 1 ? "" : "s")")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
             }
             .navigationTitle("Add Item")
             .navigationBarTitleDisplayMode(.inline)
+            .onChange(of: category) { _, _ in
+                refreshSuggestedExpiration()
+            }
+            .onChange(of: name) { _, _ in
+                refreshSuggestedExpiration()
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Cancel") { dismiss() }
@@ -73,6 +99,13 @@ struct AddItemView: View {
                     .fontWeight(.semibold)
                 }
             }
+        }
+    }
+
+    private func refreshSuggestedExpiration() {
+        guard !userEditedExpiration else { return }
+        if let newDate = Calendar.current.date(byAdding: .day, value: suggestedDays, to: Date()) {
+            expirationDate = newDate
         }
     }
 

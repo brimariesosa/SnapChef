@@ -291,3 +291,170 @@ enum FoodCategory: String, CaseIterable {
         }
     }
 }
+
+// MARK: - Realistic shelf life lookup
+
+/// Best-effort, refrigerator-friendly shelf-life estimates (in days) for
+/// fresh / unopened items. Used to seed expiration dates after a scan and
+/// to give the manual "Add Item" form a sensible default per category.
+enum ExpirationDefaults {
+
+    /// Shelf life by exact ingredient name (case-insensitive substring match).
+    /// Returns nil if no specific rule matches; callers should fall back to
+    /// `days(for:)` with the chosen category.
+    static func days(forName name: String) -> Int? {
+        let n = name.lowercased()
+
+        // ---- Seafood ----
+        if n.contains("salmon") || n.contains("tuna") || n.contains("cod")
+            || n.contains("tilapia") || n.contains("fish")
+            || n.contains("shrimp") || n.contains("scallop") || n.contains("crab")
+            || n.contains("lobster") {
+            return 2
+        }
+
+        // ---- Meat ----
+        if n.contains("ground") { return 2 }                // ground meats spoil fastest
+        if n.contains("chicken") || n.contains("turkey") || n.contains("duck") {
+            return 2
+        }
+        if n.contains("sausage") || n.contains("bacon") || n.contains("ham") {
+            return 7
+        }
+        if n.contains("steak") || n.contains("beef")
+            || n.contains("pork") || n.contains("lamb") {
+            return 4
+        }
+
+        // ---- Dairy & eggs ----
+        if n.contains("milk") || n.contains("half and half") { return 7 }
+        if n.contains("cream") { return 7 }
+        if n.contains("yogurt") { return 14 }
+        if n.contains("butter") { return 45 }
+        if n.contains("cheese") { return 21 }
+        if n.contains("egg") { return 28 }
+
+        // ---- Spices, condiments, oils (long shelf life) ----
+        // Specific peppercorn / ground pepper checked BEFORE produce "pepper".
+        if n.contains("black pepper") || n.contains("white pepper")
+            || n.contains("ground pepper") || n.contains("peppercorn") {
+            return 730
+        }
+        if n.contains("salt") || n.contains("vinegar") || n.contains("honey") {
+            return 730
+        }
+        if n.contains("soy sauce") || n.contains("worcestershire")
+            || n.contains("hot sauce") || n.contains("sriracha") {
+            return 730
+        }
+        if n.contains("olive oil") || n.contains("vegetable oil")
+            || n.contains("canola") || n.contains("oil") {
+            return 540
+        }
+        if n.contains("ketchup") || n.contains("mayo")
+            || n.contains("mayonnaise") || n.contains("mustard") {
+            return 365
+        }
+        if n.contains("jam") || n.contains("jelly") || n.contains("syrup") {
+            return 365
+        }
+        if n.contains("powder") || n.contains("paprika") || n.contains("cumin")
+            || n.contains("cinnamon") || n.contains("oregano")
+            || n.contains("rosemary") || n.contains("thyme")
+            || n.contains("basil") || n.contains("dill") {
+            // Dried herbs and spices in cabinet
+            return 540
+        }
+
+        // ---- Grains, bakery ----
+        if n.contains("flour") || n.contains("oats") || n.contains("oat") {
+            return 180
+        }
+        if n.contains("rice") || n.contains("pasta") || n.contains("noodle") {
+            return 365
+        }
+        if n.contains("breadcrumb") || n.contains("cracker") || n.contains("cereal") {
+            return 90
+        }
+        if n.contains("bagel") || n.contains("tortilla") || n.contains("bread") {
+            return 7
+        }
+
+        // ---- Frozen ----
+        if n.contains("frozen") { return 90 }
+
+        // ---- Produce (long-lasting) ----
+        if n.contains("onion") || n.contains("garlic")
+            || n.contains("potato") || n.contains("sweet potato") {
+            return 60
+        }
+        if n.contains("squash") || n.contains("pumpkin") { return 60 }
+        if n.contains("apple") || n.contains("orange")
+            || n.contains("lemon") || n.contains("lime") || n.contains("grapefruit") {
+            return 21
+        }
+        if n.contains("cabbage") { return 30 }
+        if n.contains("carrot") || n.contains("beet") || n.contains("radish") {
+            return 21
+        }
+
+        // ---- Produce (medium) ----
+        if n.contains("celery") || n.contains("broccoli") || n.contains("cauliflower") {
+            return 7
+        }
+        if n.contains("zucchini") || n.contains("eggplant") || n.contains("cucumber") {
+            return 7
+        }
+        if n.contains("bell pepper") || n.contains("pepper") {
+            return 10
+        }
+        if n.contains("tomato") { return 7 }
+
+        // ---- Produce (delicate) ----
+        if n.contains("spinach") || n.contains("kale") || n.contains("lettuce")
+            || n.contains("arugula") || n.contains("salad") {
+            return 5
+        }
+        if n.contains("mushroom") { return 5 }
+        if n.contains("berry") || n.contains("strawberry")
+            || n.contains("blueberry") || n.contains("raspberry") {
+            return 5
+        }
+        if n.contains("cilantro") || n.contains("parsley") || n.contains("mint") {
+            return 7
+        }
+        if n.contains("banana") { return 5 }
+        if n.contains("avocado") { return 4 }
+        if n.contains("grape") { return 7 }
+
+        // ---- Beverages ----
+        if n.contains("juice") { return 10 }
+        if n.contains("soda") || n.contains("water") { return 365 }
+
+        return nil
+    }
+
+    /// Reasonable default shelf-life for a category, used when no name match.
+    static func days(for category: FoodCategory) -> Int {
+        switch category {
+        case .produce: return 7
+        case .dairy: return 14
+        case .meat: return 3
+        case .seafood: return 2
+        case .grains: return 90
+        case .pantry: return 180
+        case .spicesAndCondiments: return 540
+        case .frozen: return 90
+        case .beverages: return 14
+        case .other: return 14
+        }
+    }
+
+    /// Best estimate for an ingredient: name match first, then category.
+    static func days(forName name: String,
+                     category: FoodCategory? = nil) -> Int {
+        if let byName = days(forName: name) { return byName }
+        if let category = category { return days(for: category) }
+        return 7
+    }
+}
