@@ -14,6 +14,8 @@ struct ProfileView: View {
 
     @State private var showingDietSheet = false
     @State private var showingEquipmentSheet = false
+    @State private var showingAPIKeySheet = false
+    @State private var apiKeyConfigured = KeychainService.getAPIKey() != nil
 
     var currentProfile: DietaryProfile? {
         profiles.first
@@ -32,6 +34,8 @@ struct ProfileView: View {
                     equipmentCard
 
                     notificationsCard
+
+                    apiKeyCard
 
                     aboutCard
                 }
@@ -53,9 +57,15 @@ struct ProfileView: View {
             .sheet(isPresented: $showingEquipmentSheet) {
                 EquipmentView()
             }
+            .sheet(isPresented: $showingAPIKeySheet, onDismiss: {
+                apiKeyConfigured = KeychainService.getAPIKey() != nil
+            }) {
+                APIKeySettingsView()
+            }
             .onAppear {
                 seedEquipmentIfNeeded()
                 seedProfileIfNeeded()
+                apiKeyConfigured = KeychainService.getAPIKey() != nil
             }
         }
     }
@@ -155,6 +165,20 @@ struct ProfileView: View {
                 title: "Kitchen Equipment",
                 subtitle: "\(equipment.filter { $0.isAvailable }.count) of \(equipment.count) available",
                 iconColor: Theme.accent
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var apiKeyCard: some View {
+        Button {
+            showingAPIKeySheet = true
+        } label: {
+            ProfileRow(
+                icon: "key.fill",
+                title: "Anthropic API Key",
+                subtitle: apiKeyConfigured ? "Configured" : "Not set — required for scanning",
+                iconColor: apiKeyConfigured ? Theme.forestGreen : .orange
             )
         }
         .buttonStyle(.plain)

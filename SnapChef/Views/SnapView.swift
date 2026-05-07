@@ -21,6 +21,8 @@ struct SnapView: View {
 
     @State private var pendingDemoRecipe: Recipe?
     @State private var matchedRecipe: Recipe?
+    @State private var claudeRecipes: [Recipe] = []
+    @State private var scanError: String?
 
     var body: some View {
         NavigationStack {
@@ -80,9 +82,18 @@ struct SnapView: View {
                 ScanResultsView(
                     detectedItems: detectedItems,
                     matchedRecipe: matchedRecipe,
+                    claudeRecipes: claudeRecipes,
                     pantryItems: pantryItems,
                     onAdd: addSelectedItems
                 )
+            }
+            .alert("Scan Failed", isPresented: Binding(
+                get: { scanError != nil },
+                set: { if !$0 { scanError = nil } }
+            )) {
+                Button("OK", role: .cancel) { scanError = nil }
+            } message: {
+                Text(scanError ?? "")
             }
             .alert("Camera Access Needed", isPresented: $cameraPermissionDenied) {
                 Button("Settings") {
@@ -250,19 +261,29 @@ struct SnapView: View {
     }
 
     private func scanImage() async {
-        guard capturedImage != nil else { return }
+        guard let image = capturedImage else { return }
         isScanning = true
+        defer { isScanning = false }
 
         if let demo = pendingDemoRecipe {
             detectedItems = await MockDataService.shared.identifyIngredients(for: demo)
             matchedRecipe = demo
-        } else if let image = capturedImage {
-            detectedItems = await MockDataService.shared.identifyIngredients(from: image)
-            matchedRecipe = nil
+            claudeRecipes = []
+            showingResults = true
+            return
         }
 
-        isScanning = false
-        showingResults = true
+        do {
+            let result = try await ClaudeAPIClient.shared.analyze(image: image)
+            detectedItems = result.ingredients
+            claudeRecipes = result.recipes
+            matchedRecipe = nil
+            showingResults = true
+        } catch let error as ClaudeAPIClient.APIError {
+            scanError = error.errorDescription
+        } catch {
+            scanError = error.localizedDescription
+        }
     }
 
     private func addSelectedItems(_ confirmed: [DetectedIngredient]) {
@@ -297,6 +318,7 @@ struct SnapView: View {
         detectedItems = []
         matchedRecipe = nil
         pendingDemoRecipe = nil
+        claudeRecipes = []
     }
 }
 
@@ -456,6 +478,7 @@ struct DemoPhotoCard: View {
 
 struct ScanResultsView: View {
     let matchedRecipe: Recipe?
+    let claudeRecipes: [Recipe]
     let pantryItems: [PantryItem]
     let onAdd: ([DetectedIngredient]) -> Void
 
@@ -475,10 +498,12 @@ struct ScanResultsView: View {
     init(
         detectedItems: [DetectedIngredient],
         matchedRecipe: Recipe?,
+        claudeRecipes: [Recipe] = [],
         pantryItems: [PantryItem],
         onAdd: @escaping ([DetectedIngredient]) -> Void
     ) {
         self.matchedRecipe = matchedRecipe
+        self.claudeRecipes = claudeRecipes
         self.pantryItems = pantryItems
         self.onAdd = onAdd
         self._items = State(initialValue: detectedItems)
@@ -509,6 +534,10 @@ struct ScanResultsView: View {
                     headerInfo
 
                     scannedItemsSection
+
+                    if !claudeRecipes.isEmpty {
+                        claudeRecipesSection
+                    }
 
                     suggestionsSection
                 }
@@ -667,6 +696,25 @@ struct ScanResultsView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
                 .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private var claudeRecipesSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            sectionTitle("Inspired by your photo")
+
+            VStack(spacing: 8) {
+                ForEach(claudeRecipes) { recipe in
+                    NavigationLink(destination: RecipeDetailView(recipe: recipe)) {
+                        SuggestionRow(
+                            recipe: recipe,
+                            matchPercent: 100,
+                            isHighlighted: true
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
             }
         }
     }

@@ -24,6 +24,9 @@
 		A10000000F000000 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000F000000 /* ProfileView.swift */; };
 		A100000010000000 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B100000010000000 /* Assets.xcassets */; };
 		A100000011000000 /* DemoLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000011000000 /* DemoLibrary.swift */; };
+		A100000012000000 /* KeychainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000012000000 /* KeychainService.swift */; };
+		A100000013000000 /* ClaudeAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000013000000 /* ClaudeAPIClient.swift */; };
+		A100000014000000 /* APIKeySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000014000000 /* APIKeySettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -44,6 +47,9 @@
 		B10000000F000000 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		B100000010000000 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B100000011000000 /* DemoLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoLibrary.swift; sourceTree = "<group>"; };
+		B100000012000000 /* KeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainService.swift; sourceTree = "<group>"; };
+		B100000013000000 /* ClaudeAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeAPIClient.swift; sourceTree = "<group>"; };
+		B100000014000000 /* APIKeySettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIKeySettingsView.swift; sourceTree = "<group>"; };
 		C100000001000000 /* SnapChef.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SnapChef.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -97,6 +103,7 @@
 				B10000000D000000 /* RecipeDetailView.swift */,
 				B10000000E000000 /* SnapView.swift */,
 				B10000000F000000 /* ProfileView.swift */,
+				B100000014000000 /* APIKeySettingsView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -108,6 +115,8 @@
 				B100000005000000 /* NotificationService.swift */,
 				B100000006000000 /* CameraService.swift */,
 				B100000011000000 /* DemoLibrary.swift */,
+				B100000012000000 /* KeychainService.swift */,
+				B100000013000000 /* ClaudeAPIClient.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -205,6 +214,9 @@
 				A10000000E000000 /* SnapView.swift in Sources */,
 				A10000000F000000 /* ProfileView.swift in Sources */,
 				A100000011000000 /* DemoLibrary.swift in Sources */,
+				A100000012000000 /* KeychainService.swift in Sources */,
+				A100000013000000 /* ClaudeAPIClient.swift in Sources */,
+				A100000014000000 /* APIKeySettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
