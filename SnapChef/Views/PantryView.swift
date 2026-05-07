@@ -9,9 +9,15 @@ import SwiftData
 struct PantryView: View {
     @Environment(\.modelContext) private var context
     @Query(sort: \PantryItem.dateAdded, order: .reverse) private var items: [PantryItem]
+    @Query(sort: \AppNotification.createdAt, order: .reverse) private var notifications: [AppNotification]
     @State private var searchText = ""
     @State private var selectedCategory: String = "All"
     @State private var showingAddSheet = false
+    @State private var showingNotifications = false
+
+    private var unreadNotificationsCount: Int {
+        notifications.filter { !$0.isRead }.count
+    }
 
     var filteredItems: [PantryItem] {
         items.filter { item in
@@ -57,17 +63,24 @@ struct PantryView: View {
             .searchable(text: $searchText, prompt: "Search ingredients")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showingAddSheet = true
-                    } label: {
-                        ZStack {
-                            Circle()
-                                .fill(Theme.primaryGradient)
-                                .frame(width: 36, height: 36)
-                                .shadow(color: Theme.forestGreen.opacity(0.35), radius: 6, y: 3)
-                            Image(systemName: "plus")
-                                .font(.system(size: 16, weight: .bold))
-                                .foregroundStyle(.white)
+                    HStack(spacing: 10) {
+                        NotificationBellButton(
+                            unreadCount: unreadNotificationsCount,
+                            action: { showingNotifications = true }
+                        )
+
+                        Button {
+                            showingAddSheet = true
+                        } label: {
+                            ZStack {
+                                Circle()
+                                    .fill(Theme.primaryGradient)
+                                    .frame(width: 36, height: 36)
+                                    .shadow(color: Theme.forestGreen.opacity(0.35), radius: 6, y: 3)
+                                Image(systemName: "plus")
+                                    .font(.system(size: 16, weight: .bold))
+                                    .foregroundStyle(.white)
+                            }
                         }
                     }
                 }
@@ -75,7 +88,20 @@ struct PantryView: View {
             .sheet(isPresented: $showingAddSheet) {
                 AddItemView()
             }
+            .sheet(isPresented: $showingNotifications) {
+                NotificationsListView()
+            }
+            .onAppear { syncNotifications() }
+            .onChange(of: items.count) { _, _ in syncNotifications() }
         }
+    }
+
+    private func syncNotifications() {
+        InAppNotificationSync.sync(
+            items: items,
+            existing: notifications,
+            context: context
+        )
     }
 
     private var expiringSection: some View {
@@ -342,6 +368,167 @@ struct ExpiringItemCard: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: 18))
         .shadow(color: colorFor(status: item.expirationStatus).opacity(0.35), radius: 10, y: 5)
+    }
+}
+
+// MARK: - Notification bell
+
+struct NotificationBellButton: View {
+    let unreadCount: Int
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            ZStack {
+                Circle()
+                    .fill(Color.white)
+                    .frame(width: 36, height: 36)
+                    .overlay(
+                        Circle().stroke(Theme.forestGreen.opacity(0.25), lineWidth: 1)
+                    )
+                    .shadow(color: .black.opacity(0.05), radius: 4, y: 2)
+
+                Image(systemName: "bell.fill")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Theme.forestGreenDark)
+
+                if unreadCount > 0 {
+                    Circle()
+                        .fill(Color.red)
+                        .frame(width: 10, height: 10)
+                        .overlay(
+                            Circle().stroke(Color.white, lineWidth: 2)
+                        )
+                        .offset(x: 11, y: -11)
+                }
+            }
+        }
+        .accessibilityLabel(
+            unreadCount > 0
+            ? "Notifications, \(unreadCount) unread"
+            : "Notifications"
+        )
+    }
+}
+
+// MARK: - Notifications list
+
+struct NotificationsListView: View {
+    @Environment(\.modelContext) private var context
+    @Environment(\.dismiss) private var dismiss
+    @Query(sort: \AppNotification.createdAt, order: .reverse) private var notifications: [AppNotification]
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if notifications.isEmpty {
+                    emptyState
+                } else {
+                    List {
+                        ForEach(notifications) { notification in
+                            NotificationRow(notification: notification)
+                                .onTapGesture {
+                                    if !notification.isRead {
+                                        notification.isRead = true
+                                    }
+                                }
+                                .swipeActions {
+                                    Button(role: .destructive) {
+                                        context.delete(notification)
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                }
+                        }
+                    }
+                    .listStyle(.plain)
+                }
+            }
+            .navigationTitle("Notifications")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Done") { dismiss() }
+                }
+                if !notifications.isEmpty {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Menu {
+                            Button("Mark all as read") {
+                                for n in notifications where !n.isRead { n.isRead = true }
+                            }
+                            Button("Clear all", role: .destructive) {
+                                for n in notifications { context.delete(n) }
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 14) {
+            Image(systemName: "bell.slash.fill")
+                .font(.system(size: 44, weight: .light))
+                .foregroundStyle(Theme.warmGray)
+            Text("No notifications")
+                .font(.display(18))
+                .foregroundStyle(Theme.forestGreenDark)
+            Text("You'll see alerts here when pantry items are expiring in the next 3 days.")
+                .font(.system(size: 14, design: .rounded))
+                .foregroundStyle(Theme.warmGray)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 36)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+struct NotificationRow: View {
+    let notification: AppNotification
+
+    private var tint: Color {
+        switch notification.daysUntilExpiry {
+        case 0: return .red
+        case 1: return .orange
+        case 2: return .orange
+        default: return .yellow
+        }
+    }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(tint.opacity(0.18))
+                    .frame(width: 38, height: 38)
+                Image(systemName: "clock.badge.exclamationmark.fill")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(tint)
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text(notification.title)
+                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                        .foregroundStyle(Theme.forestGreenDark)
+                    if !notification.isRead {
+                        Circle().fill(Color.red).frame(width: 8, height: 8)
+                    }
+                    Spacer()
+                }
+                Text(notification.body)
+                    .font(.system(size: 13, design: .rounded))
+                    .foregroundStyle(Theme.warmGray)
+                    .lineLimit(3)
+                Text(notification.createdAt, style: .relative)
+                    .font(.system(size: 11, design: .rounded))
+                    .foregroundStyle(Theme.warmGray.opacity(0.7))
+            }
+        }
+        .padding(.vertical, 6)
     }
 }
 

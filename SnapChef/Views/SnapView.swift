@@ -288,11 +288,10 @@ struct SnapView: View {
 
     private func addSelectedItems(_ confirmed: [DetectedIngredient]) {
         for detected in confirmed {
-            let expDate = Calendar.current.date(
-                byAdding: .day,
-                value: detected.suggestedShelfLife,
-                to: Date()
-            )
+            // Prefer the date Claude read off the packaging. If none was
+            // visible, leave it blank — the user fills it in manually from
+            // the pantry detail screen.
+            let expDate = detected.detectedExpirationDate
 
             if let existing = pantryItems.first(where: {
                 $0.name.localizedCaseInsensitiveCompare(detected.name) == .orderedSame

@@ -163,6 +163,47 @@ enum ExpirationStatus {
     }
 }
 
+// MARK: - In-app Notification (persisted)
+//
+// One AppNotification per (batch, daysOut) tier: 3 / 2 / 1 / 0 days before
+// expiration. The id is deterministic so the sync function stays idempotent
+// — running it many times never produces duplicates and preserves `isRead`.
+
+@Model
+final class AppNotification {
+    @Attribute(.unique) var id: String
+    var title: String
+    var body: String
+    var itemId: UUID?
+    var itemName: String
+    var daysUntilExpiry: Int
+    var expirationDate: Date?
+    var createdAt: Date
+    var isRead: Bool
+
+    init(
+        id: String,
+        title: String,
+        body: String,
+        itemId: UUID? = nil,
+        itemName: String = "",
+        daysUntilExpiry: Int = 0,
+        expirationDate: Date? = nil,
+        createdAt: Date = Date(),
+        isRead: Bool = false
+    ) {
+        self.id = id
+        self.title = title
+        self.body = body
+        self.itemId = itemId
+        self.itemName = itemName
+        self.daysUntilExpiry = daysUntilExpiry
+        self.expirationDate = expirationDate
+        self.createdAt = createdAt
+        self.isRead = isRead
+    }
+}
+
 // MARK: - Dietary Profile
 
 @Model

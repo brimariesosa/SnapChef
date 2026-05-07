@@ -104,7 +104,12 @@ final class ClaudeAPIClient {
         Schema:
         {
           "ingredients": [
-            { "name": "string", "confidence": 0.0-1.0, "category": "<one of the allowed values>" }
+            {
+              "name": "string",
+              "confidence": 0.0-1.0,
+              "category": "<one of the allowed values>",
+              "expirationDate": "YYYY-MM-DD" or null
+            }
           ],
           "recipes": [
             {
@@ -126,6 +131,12 @@ final class ClaudeAPIClient {
         Rules:
         - Only list ingredients you can clearly see in the photo. Use singular common names \
         (e.g. "Tomato", "Cheddar Cheese", "Chicken Breast").
+        - For each ingredient, look for a printed expiration / use-by / best-before date \
+        on the packaging in the photo. If a date is clearly readable, return it as \
+        "expirationDate" in ISO format YYYY-MM-DD. If no date is visible or you are not \
+        confident, return null. Never guess. If only a month and year are printed, use \
+        the last day of that month. If the date format is ambiguous (e.g. 03/04/26), \
+        prefer the day-month-year reading and still return YYYY-MM-DD.
         - Provide 3 to 6 recipe ideas that primarily use the detected ingredients. Recipes \
         may include common pantry staples (salt, pepper, oil) even if not pictured.
         - Keep recipe steps concise and numbered logically (4-8 steps each).
@@ -198,6 +209,7 @@ final class ClaudeAPIClient {
             let name: String
             let confidence: Double?
             let category: String?
+            let expirationDate: String?
         }
         struct WireRecipeIngredient: Decodable {
             let name: String
@@ -236,7 +248,8 @@ final class ClaudeAPIClient {
                 name: wire.name.trimmingCharacters(in: .whitespacesAndNewlines),
                 confidence: max(0.0, min(1.0, wire.confidence ?? 0.85)),
                 category: category,
-                suggestedShelfLife: shelfLife
+                suggestedShelfLife: shelfLife,
+                detectedExpirationDate: parseISODate(wire.expirationDate)
             )
         }
 
@@ -320,6 +333,23 @@ final class ClaudeAPIClient {
             }
         }
         return nil
+    }
+
+    private static let isoDateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.calendar = Calendar(identifier: .gregorian)
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = TimeZone(identifier: "UTC")
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
+
+    private func parseISODate(_ raw: String?) -> Date? {
+        guard let raw = raw?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !raw.isEmpty,
+              raw.lowercased() != "null"
+        else { return nil }
+        return Self.isoDateFormatter.date(from: raw)
     }
 
     private func normalizedCategory(_ raw: String?) -> String {

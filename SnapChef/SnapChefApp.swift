@@ -17,7 +17,8 @@ struct SnapChefApp: App {
             PantryItem.self,
             PantryBatch.self,
             DietaryProfile.self,
-            KitchenEquipment.self
+            KitchenEquipment.self,
+            AppNotification.self
         ])
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
         do {

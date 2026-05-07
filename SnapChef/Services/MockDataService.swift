@@ -130,19 +130,24 @@ struct DetectedIngredient: Identifiable, Hashable {
     var confidence: Double
     var category: String
     var suggestedShelfLife: Int
+    /// Expiration date Claude was able to read off the packaging.
+    /// `nil` when no printed date was visible — the user enters it manually.
+    var detectedExpirationDate: Date?
 
     init(
         id: UUID = UUID(),
         name: String,
         confidence: Double,
         category: String,
-        suggestedShelfLife: Int
+        suggestedShelfLife: Int,
+        detectedExpirationDate: Date? = nil
     ) {
         self.id = id
         self.name = name
         self.confidence = confidence
         self.category = category
         self.suggestedShelfLife = suggestedShelfLife
+        self.detectedExpirationDate = detectedExpirationDate
     }
 }
 
