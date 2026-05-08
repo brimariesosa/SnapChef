@@ -34,7 +34,12 @@ struct RecipeDetailView: View {
             .padding(16)
             .padding(.bottom, 40)
         }
-        .background(Theme.cream.opacity(0.4))
+        .background(
+            ZStack {
+                Theme.appBackgroundGradient.ignoresSafeArea()
+                DecorativeBlobs().ignoresSafeArea()
+            }
+        )
         .navigationTitle(recipe.title)
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -137,11 +142,15 @@ struct RecipeDetailView: View {
         .padding(.vertical, 14)
         .background(Color.white)
         .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Theme.forestGreen.opacity(0.18), lineWidth: 1)
+        )
     }
 
     private var divider: some View {
         Rectangle()
-            .fill(Color.gray.opacity(0.2))
+            .fill(Theme.forestGreen.opacity(0.18))
             .frame(width: 1, height: 32)
     }
 
@@ -149,10 +158,11 @@ struct RecipeDetailView: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text("Pantry Match")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Theme.forestGreenDark)
                 Spacer()
                 Text("\(matchPercent)%")
-                    .font(.system(size: 18, weight: .bold))
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
                     .foregroundStyle(Theme.forestGreen)
             }
 
@@ -161,36 +171,42 @@ struct RecipeDetailView: View {
 
             if !missing.isEmpty {
                 Text("Missing: \(missing.map { $0.name }.joined(separator: ", "))")
-                    .font(.system(size: 13))
-                    .foregroundStyle(.orange)
+                    .font(.system(size: 13, design: .rounded))
+                    .foregroundStyle(Theme.coral)
             } else {
                 Text("You have everything!")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.green)
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Theme.forestGreen)
             }
         }
         .padding(16)
         .background(Color.white)
         .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Theme.forestGreen.opacity(0.18), lineWidth: 1)
+        )
     }
 
     private var ingredientsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Ingredients")
-                .font(.system(size: 18, weight: .bold))
+                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .foregroundStyle(Theme.forestGreenDark)
 
             VStack(spacing: 8) {
                 ForEach(recipe.ingredients, id: \.self) { ing in
                     let have = pantry.contains { $0.name.lowercased() == ing.name.lowercased() }
                     HStack {
                         Image(systemName: have ? "checkmark.circle.fill" : "circle")
-                            .foregroundStyle(have ? .green : Theme.warmGray)
+                            .foregroundStyle(have ? Theme.forestGreen : Theme.warmGray)
                         Text(ing.name)
-                            .font(.system(size: 15))
+                            .font(.system(size: 15, design: .rounded))
+                            .foregroundStyle(Theme.forestGreenDark)
                             .strikethrough(have, color: Theme.warmGray)
                         Spacer()
                         Text("\(formatted(ing.amount)) \(ing.unit)")
-                            .font(.system(size: 14))
+                            .font(.system(size: 14, design: .rounded))
                             .foregroundStyle(Theme.warmGray)
                     }
                     .padding(.vertical, 4)
@@ -205,7 +221,8 @@ struct RecipeDetailView: View {
     private var stepsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Instructions")
-                .font(.system(size: 18, weight: .bold))
+                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .foregroundStyle(Theme.forestGreenDark)
 
             VStack(spacing: 10) {
                 ForEach(Array(recipe.steps.enumerated()), id: \.offset) { idx, step in
@@ -227,14 +244,14 @@ struct RecipeDetailView: View {
                                         .foregroundStyle(.white)
                                 } else {
                                     Text("\(idx + 1)")
-                                        .font(.system(size: 13, weight: .bold))
+                                        .font(.system(size: 13, weight: .bold, design: .rounded))
                                         .foregroundStyle(Theme.forestGreen)
                                 }
                             }
 
                             Text(step)
-                                .font(.system(size: 15))
-                                .foregroundStyle(.primary)
+                                .font(.system(size: 15, design: .rounded))
+                                .foregroundStyle(Theme.forestGreenDark)
                                 .strikethrough(completedSteps.contains(idx))
                                 .multilineTextAlignment(.leading)
 
@@ -243,6 +260,10 @@ struct RecipeDetailView: View {
                         .padding(12)
                         .background(Color.white)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Theme.forestGreen.opacity(0.18), lineWidth: 1)
+                        )
                     }
                     .buttonStyle(.plain)
                 }
@@ -265,12 +286,13 @@ struct InfoTile: View {
     var body: some View {
         VStack(spacing: 4) {
             Image(systemName: icon)
-                .font(.system(size: 16))
+                .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(Theme.forestGreen)
             Text(value)
-                .font(.system(size: 14, weight: .semibold))
+                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .foregroundStyle(Theme.forestGreenDark)
             Text(label)
-                .font(.system(size: 11))
+                .font(.system(size: 11, weight: .medium, design: .rounded))
                 .foregroundStyle(Theme.warmGray)
         }
         .frame(maxWidth: .infinity)

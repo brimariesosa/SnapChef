@@ -386,7 +386,12 @@ struct DemoLibraryPicker: View {
                 }
                 .padding(16)
             }
-            .background(Theme.cream.opacity(0.4))
+            .background(
+                ZStack {
+                    Theme.appBackgroundGradient.ignoresSafeArea()
+                    DecorativeBlobs().ignoresSafeArea()
+                }
+            )
             .navigationTitle("Demo Library")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -573,7 +578,12 @@ struct ScanResultsView: View {
                 }
                 .padding(16)
             }
-            .background(Theme.cream.opacity(0.4))
+            .background(
+                ZStack {
+                    Theme.appBackgroundGradient.ignoresSafeArea()
+                    DecorativeBlobs().ignoresSafeArea()
+                }
+            )
             .navigationTitle(didAdd ? "Added to Pantry" : "Scan Results")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -1044,21 +1054,19 @@ struct EditDetectionRow: View {
             .tint(Theme.forestGreen)
 
             HStack {
-                Button(role: .destructive, action: onDelete) {
+                Button(action: onDelete) {
                     Label("Remove", systemImage: "trash")
-                        .font(.system(size: 14, weight: .medium))
+                        .destructivePillButton()
                 }
-                .buttonStyle(.bordered)
-                .tint(.red)
+                .buttonStyle(.plain)
 
                 Spacer()
 
                 Button(action: onSave) {
                     Text("Done")
-                        .font(.system(size: 14, weight: .semibold))
+                        .compactPrimaryButton()
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(Theme.forestGreen)
+                .buttonStyle(.plain)
                 .disabled(item.name.trimmingCharacters(in: .whitespaces).isEmpty)
             }
         }
@@ -1081,9 +1089,9 @@ struct SuggestionRow: View {
 
     var matchColor: Color {
         switch matchPercent {
-        case 80...: return .green
-        case 50..<80: return .orange
-        default: return .gray
+        case 80...: return Theme.forestGreen
+        case 50..<80: return Theme.accent
+        default: return Theme.warmGray
         }
     }
 
@@ -1105,15 +1113,15 @@ struct SuggestionRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 if isHighlighted {
                     Text("Recipe match")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.system(size: 11, weight: .semibold, design: .rounded))
                         .foregroundStyle(Theme.forestGreen)
                 }
                 Text(recipe.title)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
                     .foregroundStyle(Theme.forestGreenDark)
                     .lineLimit(1)
                 Text(recipe.description)
-                    .font(.system(size: 12))
+                    .font(.system(size: 12, design: .rounded))
                     .foregroundStyle(Theme.warmGray)
                     .lineLimit(2)
             }
@@ -1122,7 +1130,7 @@ struct SuggestionRow: View {
 
             VStack(spacing: 4) {
                 Text("\(matchPercent)%")
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
@@ -1138,7 +1146,10 @@ struct SuggestionRow: View {
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
-                .stroke(isHighlighted ? Theme.forestGreen : Color.clear, lineWidth: 2)
+                .stroke(
+                    isHighlighted ? Theme.forestGreen : Theme.forestGreen.opacity(0.18),
+                    lineWidth: isHighlighted ? 2 : 1
+                )
         )
         .shadow(color: .black.opacity(0.04), radius: 5, y: 2)
     }
@@ -1166,6 +1177,7 @@ struct AddCustomDetectionSheet: View {
                     }
                 }
             }
+            .themedFormBackground()
             .navigationTitle("Add Item")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

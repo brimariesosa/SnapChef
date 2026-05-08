@@ -394,7 +394,7 @@ struct NotificationBellButton: View {
 
                 if unreadCount > 0 {
                     Circle()
-                        .fill(Color.red)
+                        .fill(Theme.coral)
                         .frame(width: 10, height: 10)
                         .overlay(
                             Circle().stroke(Color.white, lineWidth: 2)
@@ -427,6 +427,8 @@ struct NotificationsListView: View {
                     List {
                         ForEach(notifications) { notification in
                             NotificationRow(notification: notification)
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
                                 .onTapGesture {
                                     if !notification.isRead {
                                         notification.isRead = true
@@ -442,8 +444,15 @@ struct NotificationsListView: View {
                         }
                     }
                     .listStyle(.plain)
+                    .scrollContentBackground(.hidden)
                 }
             }
+            .background(
+                ZStack {
+                    Theme.appBackgroundGradient.ignoresSafeArea()
+                    DecorativeBlobs().ignoresSafeArea()
+                }
+            )
             .navigationTitle("Notifications")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -515,7 +524,7 @@ struct NotificationRow: View {
                         .font(.system(size: 15, weight: .semibold, design: .rounded))
                         .foregroundStyle(Theme.forestGreenDark)
                     if !notification.isRead {
-                        Circle().fill(Color.red).frame(width: 8, height: 8)
+                        Circle().fill(Theme.coral).frame(width: 8, height: 8)
                     }
                     Spacer()
                 }
@@ -528,7 +537,13 @@ struct NotificationRow: View {
                     .foregroundStyle(Theme.warmGray.opacity(0.7))
             }
         }
-        .padding(.vertical, 6)
+        .padding(12)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Theme.forestGreen.opacity(0.18), lineWidth: 1)
+        )
     }
 }
 

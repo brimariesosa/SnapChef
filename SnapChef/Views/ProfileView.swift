@@ -117,6 +117,11 @@ struct ProfileView: View {
         .padding(.vertical, 16)
         .background(Color.white)
         .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Theme.forestGreen.opacity(0.18), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.05), radius: 8, y: 3)
     }
 
     private var expiringCount: Int {
@@ -126,7 +131,9 @@ struct ProfileView: View {
     }
 
     private var divider: some View {
-        Rectangle().fill(Color.gray.opacity(0.15)).frame(width: 1, height: 36)
+        Rectangle()
+            .fill(Theme.forestGreen.opacity(0.18))
+            .frame(width: 1, height: 36)
     }
 
     private var dietaryCard: some View {
@@ -178,7 +185,7 @@ struct ProfileView: View {
                 icon: "key.fill",
                 title: "Anthropic API Key",
                 subtitle: apiKeyConfigured ? "Configured" : "Not set — required for scanning",
-                iconColor: apiKeyConfigured ? Theme.forestGreen : .orange
+                iconColor: apiKeyConfigured ? Theme.forestGreen : Theme.accent
             )
         }
         .buttonStyle(.plain)
@@ -187,50 +194,60 @@ struct ProfileView: View {
     private var notificationsCard: some View {
         HStack {
             Image(systemName: "bell.fill")
-                .foregroundStyle(.orange)
+                .foregroundStyle(Theme.accent)
                 .frame(width: 36, height: 36)
-                .background(Color.orange.opacity(0.15))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .background(Theme.accent.opacity(0.15))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Expiration Alerts")
-                    .font(.system(size: 15, weight: .semibold))
-                Text("Push notifications 2 days before expiration")
-                    .font(.system(size: 12))
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Theme.forestGreenDark)
+                Text("Pings you 3, 2, and 1 day before anything spoils.")
+                    .font(.system(size: 12, design: .rounded))
                     .foregroundStyle(Theme.warmGray)
             }
 
             Spacer()
 
             Image(systemName: "checkmark.circle.fill")
-                .foregroundStyle(.green)
+                .foregroundStyle(Theme.forestGreen)
         }
         .padding(14)
         .background(Color.white)
         .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Theme.forestGreen.opacity(0.18), lineWidth: 1)
+        )
     }
 
     private var aboutCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("About SnapChef")
-                .font(.system(size: 14, weight: .semibold))
+                .font(.system(size: 14, weight: .semibold, design: .rounded))
                 .foregroundStyle(Theme.forestGreen)
 
             Text("Snap your fridge. Cook what you have. Waste nothing.")
-                .font(.system(size: 15, weight: .medium))
+                .font(.system(size: 15, weight: .semibold, design: .rounded))
+                .foregroundStyle(Theme.forestGreenDark)
 
             Text("Built by Team 6: Bri Sosa, Bo Bredenbruecher, Maksymillian Rechnio.")
-                .font(.system(size: 12))
+                .font(.system(size: 12, design: .rounded))
                 .foregroundStyle(Theme.warmGray)
 
             Text("ISYS 556/856")
-                .font(.system(size: 11))
+                .font(.system(size: 11, design: .rounded))
                 .foregroundStyle(Theme.warmGray)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
         .background(Color.white)
         .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Theme.forestGreen.opacity(0.18), lineWidth: 1)
+        )
     }
 
     private func seedEquipmentIfNeeded() {
@@ -254,10 +271,10 @@ struct ProfileStatTile: View {
     var body: some View {
         VStack(spacing: 4) {
             Text(value)
-                .font(.system(size: 22, weight: .bold))
+                .font(.system(size: 22, weight: .bold, design: .rounded))
                 .foregroundStyle(Theme.forestGreenDark)
             Text(label)
-                .font(.system(size: 11))
+                .font(.system(size: 11, weight: .medium, design: .rounded))
                 .foregroundStyle(Theme.warmGray)
         }
         .frame(maxWidth: .infinity)
@@ -273,18 +290,18 @@ struct ProfileRow: View {
     var body: some View {
         HStack(spacing: 14) {
             Image(systemName: icon)
-                .font(.title3)
+                .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(iconColor)
                 .frame(width: 44, height: 44)
                 .background(iconColor.opacity(0.15))
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(title)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.primary)
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Theme.forestGreenDark)
                 Text(subtitle)
-                    .font(.system(size: 12))
+                    .font(.system(size: 12, design: .rounded))
                     .foregroundStyle(Theme.warmGray)
                     .lineLimit(1)
             }
@@ -292,12 +309,16 @@ struct ProfileRow: View {
             Spacer()
 
             Image(systemName: "chevron.right")
-                .font(.caption)
+                .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Theme.warmGray)
         }
         .padding(14)
         .background(Color.white)
         .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Theme.forestGreen.opacity(0.18), lineWidth: 1)
+        )
     }
 }
 
@@ -334,7 +355,7 @@ struct DietaryPreferencesView: View {
                                 profile.allergies.removeAll { $0 == allergy }
                             } label: {
                                 Image(systemName: "minus.circle.fill")
-                                    .foregroundStyle(.red)
+                                    .foregroundStyle(Theme.coral)
                             }
                         }
                     }
@@ -356,6 +377,7 @@ struct DietaryPreferencesView: View {
                     Toggle("Apply to recipe suggestions", isOn: $profile.isActive)
                 }
             }
+            .themedFormBackground()
             .navigationTitle("Dietary Preferences")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -389,6 +411,7 @@ struct EquipmentView: View {
                     Text("Recipes will be filtered to only show those you can make with your available equipment.")
                 }
             }
+            .themedFormBackground()
             .navigationTitle("Kitchen Equipment")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

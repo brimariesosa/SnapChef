@@ -79,6 +79,7 @@ struct AddItemView: View {
                     }
                 }
             }
+            .themedFormBackground()
             .navigationTitle("Add Item")
             .navigationBarTitleDisplayMode(.inline)
             .onChange(of: category) { _, _ in

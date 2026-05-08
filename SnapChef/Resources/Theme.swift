@@ -123,6 +123,50 @@ extension View {
         )
     }
 
+    /// Applies the brand background to a `Form` or `List` and hides the
+    /// system grey grouped surface so cream + DecorativeBlobs show through.
+    /// Use on every Form/List in the app.
+    func themedFormBackground() -> some View {
+        self
+            .scrollContentBackground(.hidden)
+            .background(
+                ZStack {
+                    Theme.appBackgroundGradient.ignoresSafeArea()
+                    DecorativeBlobs().ignoresSafeArea()
+                }
+            )
+            .tint(Theme.forestGreen)
+    }
+
+    /// A compact pill-shaped primary CTA suitable for inline placements
+    /// (rows, sheets, dialogs) where `.primaryButton()`'s full-width
+    /// padding would be wrong. Carries the same forest glow shadow.
+    func compactPrimaryButton() -> some View {
+        self
+            .font(.system(size: 14, weight: .bold, design: .rounded))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 22)
+            .padding(.vertical, 10)
+            .background(Theme.primaryGradient)
+            .clipShape(Capsule())
+            .shadow(color: Theme.forestGreen.opacity(0.35), radius: 8, y: 4)
+    }
+
+    /// Soft destructive pill in coral — replaces grey `.bordered` destructive
+    /// buttons that drift from the brand palette.
+    func destructivePillButton() -> some View {
+        self
+            .font(.system(size: 13, weight: .semibold, design: .rounded))
+            .foregroundStyle(Theme.coral)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(Theme.coral.opacity(0.12))
+            .clipShape(Capsule())
+            .overlay(
+                Capsule().stroke(Theme.coral.opacity(0.35), lineWidth: 1)
+            )
+    }
+
     func primaryButton() -> some View {
         self
             .font(.system(size: 16, weight: .bold, design: .rounded))

@@ -28,14 +28,14 @@ struct APIKeySettingsView: View {
                 if let saveError {
                     Section {
                         Label(saveError, systemImage: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.red)
+                            .foregroundStyle(Theme.coral)
                     }
                 }
 
                 if didSave {
                     Section {
                         Label("Saved", systemImage: "checkmark.circle.fill")
-                            .foregroundStyle(.green)
+                            .foregroundStyle(Theme.forestGreen)
                     }
                 }
 
@@ -51,6 +51,7 @@ struct APIKeySettingsView: View {
                     }
                 }
             }
+            .themedFormBackground()
             .navigationTitle("API Key")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

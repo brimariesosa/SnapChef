@@ -43,7 +43,7 @@ struct ItemDetailView: View {
 
                 metadataCard
 
-                Button(role: .destructive) {
+                Button {
                     showingDeleteAlert = true
                 } label: {
                     HStack {
@@ -53,9 +53,13 @@ struct ItemDetailView: View {
                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(Color.red.opacity(0.1))
-                    .foregroundStyle(.red)
+                    .background(Theme.coral.opacity(0.12))
+                    .foregroundStyle(Theme.coral)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(Theme.coral.opacity(0.35), lineWidth: 1)
+                    )
                 }
                 .padding(.top, 8)
             }
@@ -165,7 +169,7 @@ struct ItemDetailView: View {
 
     private var divider: some View {
         Rectangle()
-            .fill(Color.gray.opacity(0.15))
+            .fill(Theme.forestGreen.opacity(0.18))
             .frame(width: 1, height: 36)
     }
 
@@ -371,9 +375,9 @@ struct BatchRow: View {
                 } label: {
                     Image(systemName: "trash.fill")
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(.red)
+                        .foregroundStyle(Theme.coral)
                         .frame(width: 32, height: 32)
-                        .background(Color.red.opacity(0.1))
+                        .background(Theme.coral.opacity(0.12))
                         .clipShape(Circle())
                 }
                 .buttonStyle(.plain)
@@ -397,7 +401,7 @@ struct BatchRow: View {
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
-                .stroke(colorFor(status: batch.expirationStatus).opacity(0.25), lineWidth: 1)
+                .stroke(Theme.forestGreen.opacity(0.18), lineWidth: 1)
         )
         .alert("Remove this batch?", isPresented: $showingDeleteAlert) {
             Button("Remove", role: .destructive, action: onDelete)
@@ -513,6 +517,7 @@ struct AddBatchSheet: View {
                     }
                 }
             }
+            .themedFormBackground()
             .navigationTitle("Add Batch")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

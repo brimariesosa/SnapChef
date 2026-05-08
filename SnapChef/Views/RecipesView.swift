@@ -137,14 +137,22 @@ struct RecipesView: View {
     }
 
     private var emptyState: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "fork.knife")
-                .font(.system(size: 50))
-                .foregroundStyle(Theme.sage)
+        VStack(spacing: 18) {
+            ZStack {
+                Circle()
+                    .fill(Theme.primaryGradient)
+                    .frame(width: 130, height: 130)
+                    .shadow(color: Theme.forestGreen.opacity(0.3), radius: 20, y: 8)
+                Image(systemName: "fork.knife")
+                    .font(.system(size: 56, weight: .light))
+                    .foregroundStyle(.white)
+            }
+
             Text("No matching recipes")
-                .font(.headline)
+                .font(.display(20))
+                .foregroundStyle(Theme.forestGreenDark)
             Text("Add more ingredients to your pantry or adjust your filters.")
-                .font(.subheadline)
+                .font(.system(size: 15, design: .rounded))
                 .foregroundStyle(Theme.warmGray)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
@@ -196,6 +204,10 @@ struct StatCard: View {
         .padding(.vertical, 14)
         .background(Color.white)
         .clipShape(RoundedRectangle(cornerRadius: 18))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(Theme.forestGreen.opacity(0.18), lineWidth: 1)
+        )
         .shadow(color: .black.opacity(0.06), radius: 8, y: 3)
     }
 }
@@ -211,13 +223,17 @@ struct RecipeCard: View {
     var matchGradient: LinearGradient {
         switch matchPercent {
         case 80...:
-            return LinearGradient(colors: [.green, Theme.mint],
-                                  startPoint: .topLeading, endPoint: .bottomTrailing)
+            return LinearGradient(
+                colors: [Theme.forestGreen, Theme.mint],
+                startPoint: .topLeading, endPoint: .bottomTrailing
+            )
         case 50..<80:
             return Theme.sunsetGradient
         default:
-            return LinearGradient(colors: [.gray.opacity(0.7), .gray.opacity(0.4)],
-                                  startPoint: .topLeading, endPoint: .bottomTrailing)
+            return LinearGradient(
+                colors: [Theme.warmGray.opacity(0.85), Theme.warmGray.opacity(0.5)],
+                startPoint: .topLeading, endPoint: .bottomTrailing
+            )
         }
     }
 
@@ -298,6 +314,10 @@ struct RecipeCard: View {
         .padding(14)
         .background(Color.white)
         .clipShape(RoundedRectangle(cornerRadius: 20))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(Theme.forestGreen.opacity(0.18), lineWidth: 1)
+        )
         .shadow(color: .black.opacity(0.06), radius: 10, y: 4)
     }
 }
