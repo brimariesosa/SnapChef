@@ -9,6 +9,8 @@ import SwiftData
 struct SnapView: View {
     @Environment(\.modelContext) private var context
     @Query private var pantryItems: [PantryItem]
+    @Query private var profiles: [DietaryProfile]
+    @Query private var equipment: [KitchenEquipment]
 
     @State private var showingCamera = false
     @State private var showingPhotoLibrary = false
@@ -267,7 +269,14 @@ struct SnapView: View {
 
         if let demo = pendingDemoRecipe {
             detectedItems = await MockDataService.shared.identifyIngredients(for: demo)
-            matchedRecipe = demo
+            // Try to upgrade the demo recipe to the real allrecipes.com
+            // version of the same dish; fall back to the bundled sample
+            // when the network/API isn't available.
+            let upgraded = await AllRecipesService.shared.fetchByTitle(
+                demo.title,
+                context: context
+            )
+            matchedRecipe = upgraded ?? demo
             claudeRecipes = []
             showingResults = true
             return
@@ -276,9 +285,22 @@ struct SnapView: View {
         do {
             let result = try await ClaudeAPIClient.shared.analyze(image: image)
             detectedItems = result.ingredients
-            claudeRecipes = result.recipes
             matchedRecipe = nil
             showingResults = true
+
+            // Replace Claude's invented recipes with real allrecipes.com
+            // recipes biased toward the detected ingredients. Run after the
+            // results sheet is already showing so the user sees their
+            // ingredients immediately.
+            let profile = profiles.first { $0.isActive }
+            let sourced = await AllRecipesService.shared.fetchForDetected(
+                ingredients: result.ingredients,
+                pantry: pantryItems,
+                dietaryProfile: profile,
+                equipment: equipment,
+                context: context
+            )
+            claudeRecipes = sourced
         } catch let error as ClaudeAPIClient.APIError {
             scanError = error.errorDescription
         } catch {
@@ -482,6 +504,7 @@ struct ScanResultsView: View {
     let onAdd: ([DetectedIngredient]) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @Query(sort: \CachedRecipe.lastAccessed, order: .reverse) private var cachedRecipes: [CachedRecipe]
 
     @State private var items: [DetectedIngredient]
     @State private var selected: Set<UUID>
@@ -517,8 +540,16 @@ struct ScanResultsView: View {
         pantryItems.map { $0.name } + selectedItems.map { $0.name }
     }
 
+    private var suggestionPool: [Recipe] {
+        // Prefer real cached recipes from allrecipes.com; fall back to the
+        // local sample pool if the cache is empty (e.g. first launch with
+        // no API key).
+        let cached = cachedRecipes.compactMap { $0.decoded() }
+        return cached.isEmpty ? sampleRecipes : cached
+    }
+
     private var suggestedRecipes: [(recipe: Recipe, score: Double)] {
-        sampleRecipes
+        suggestionPool
             .map { ($0, $0.matchScore(pantryNames: virtualPantryNames)) }
             .filter { $0.1 > 0 }
             .sorted { $0.1 > $1.1 }

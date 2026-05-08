@@ -27,6 +27,9 @@ struct RecipeDetailView: View {
                 matchSection
                 ingredientsSection
                 stepsSection
+                if let urlString = recipe.sourceURL, let url = URL(string: urlString) {
+                    sourceFooter(url: url)
+                }
             }
             .padding(16)
             .padding(.bottom, 40)
@@ -36,20 +39,67 @@ struct RecipeDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 
+    @ViewBuilder
+    private var heroImage: some View {
+        if let imageURL = recipe.imageURL, let url = URL(string: imageURL) {
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .success(let image):
+                    image.resizable().scaledToFill()
+                case .failure:
+                    heroFallback
+                case .empty:
+                    heroFallback.overlay(ProgressView().tint(.white))
+                @unknown default:
+                    heroFallback
+                }
+            }
+        } else {
+            heroFallback
+        }
+    }
+
+    private var heroFallback: some View {
+        Image(systemName: recipe.imageName)
+            .font(.system(size: 80, weight: .light))
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(
+                LinearGradient(
+                    colors: [Theme.forestGreen, Theme.forestGreenLight],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+    }
+
+    private func sourceFooter(url: URL) -> some View {
+        Link(destination: url) {
+            HStack(spacing: 10) {
+                Image(systemName: "link")
+                    .font(.system(size: 14, weight: .semibold))
+                Text("View on \(recipe.sourceName ?? "allrecipes.com")")
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                Spacer()
+                Image(systemName: "arrow.up.right.square")
+                    .font(.system(size: 14, weight: .semibold))
+            }
+            .foregroundStyle(Theme.forestGreen)
+            .padding(14)
+            .background(Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(Theme.forestGreen.opacity(0.3), lineWidth: 1)
+            )
+        }
+    }
+
     private var heroSection: some View {
         VStack(spacing: 12) {
-            Image(systemName: recipe.imageName)
-                .font(.system(size: 80, weight: .light))
-                .foregroundStyle(.white)
+            heroImage
                 .frame(maxWidth: .infinity)
-                .frame(height: 180)
-                .background(
-                    LinearGradient(
-                        colors: [Theme.forestGreen, Theme.forestGreenLight],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .frame(height: 220)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
 
             Text(recipe.description)

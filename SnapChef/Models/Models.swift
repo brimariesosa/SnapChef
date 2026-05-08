@@ -163,6 +163,40 @@ enum ExpirationStatus {
     }
 }
 
+// MARK: - Cached Recipe (persisted)
+//
+// One CachedRecipe per allrecipes.com URL we've fetched. The full Recipe
+// struct is JSON-encoded into `jsonBlob` so the schema doesn't need to track
+// every Recipe field. `lastAccessed` powers LRU eviction at 20 entries.
+
+@Model
+final class CachedRecipe {
+    @Attribute(.unique) var sourceURL: String
+    var jsonBlob: Data
+    var fetchedAt: Date
+    var lastAccessed: Date
+
+    init(
+        sourceURL: String,
+        jsonBlob: Data,
+        fetchedAt: Date = Date(),
+        lastAccessed: Date = Date()
+    ) {
+        self.sourceURL = sourceURL
+        self.jsonBlob = jsonBlob
+        self.fetchedAt = fetchedAt
+        self.lastAccessed = lastAccessed
+    }
+
+    func decoded() -> Recipe? {
+        try? JSONDecoder().decode(Recipe.self, from: jsonBlob)
+    }
+
+    static func encode(_ recipe: Recipe) -> Data? {
+        try? JSONEncoder().encode(recipe)
+    }
+}
+
 // MARK: - In-app Notification (persisted)
 //
 // One AppNotification per (batch, daysOut) tier: 3 / 2 / 1 / 0 days before
@@ -278,7 +312,54 @@ struct Recipe: Identifiable, Hashable, Codable {
     let tags: [String]
     let requiredEquipment: [String]
 
+    /// allrecipes.com canonical URL when this recipe was sourced from
+    /// the live site. `nil` for hardcoded sample / Claude-invented recipes.
+    var sourceURL: String?
+    /// Display name of the source ("allrecipes.com").
+    var sourceName: String?
+    /// Real recipe photo URL (from JSON-LD `image`). When `nil`, the
+    /// existing SF Symbol `imageName` is used as a fallback.
+    var imageURL: String?
+    /// Aggregate rating (0-5) parsed from JSON-LD `aggregateRating.ratingValue`.
+    var rating: Double?
+
     var totalTime: Int { prepTime + cookTime }
+
+    init(
+        id: UUID = UUID(),
+        title: String,
+        description: String,
+        imageName: String,
+        prepTime: Int,
+        cookTime: Int,
+        servings: Int,
+        difficulty: String,
+        ingredients: [RecipeIngredient],
+        steps: [String],
+        tags: [String],
+        requiredEquipment: [String],
+        sourceURL: String? = nil,
+        sourceName: String? = nil,
+        imageURL: String? = nil,
+        rating: Double? = nil
+    ) {
+        self.id = id
+        self.title = title
+        self.description = description
+        self.imageName = imageName
+        self.prepTime = prepTime
+        self.cookTime = cookTime
+        self.servings = servings
+        self.difficulty = difficulty
+        self.ingredients = ingredients
+        self.steps = steps
+        self.tags = tags
+        self.requiredEquipment = requiredEquipment
+        self.sourceURL = sourceURL
+        self.sourceName = sourceName
+        self.imageURL = imageURL
+        self.rating = rating
+    }
 
     func matchScore(pantry: [PantryItem]) -> Double {
         matchScore(pantryNames: pantry.map { $0.name })

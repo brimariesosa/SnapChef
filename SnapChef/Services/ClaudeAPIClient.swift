@@ -51,6 +51,57 @@ final class ClaudeAPIClient {
 
     // MARK: - Public
 
+    /// Asks Claude to web-search allrecipes.com and return up to ~8 candidate
+    /// recipe URLs that match the pantry / dietary profile / equipment.
+    /// The actual recipe content is fetched + parsed locally from those URLs;
+    /// here we just need a curated list of links.
+    func searchAllRecipesURLs(
+        pantry: [PantryItem],
+        dietaryProfile: DietaryProfile?,
+        equipment: [KitchenEquipment],
+        detectedIngredients: [String]? = nil,
+        maxResults: Int = 8
+    ) async throws -> [URL] {
+        guard let apiKey = KeychainService.getAPIKey() else {
+            throw APIError.missingAPIKey
+        }
+
+        let body = makeAllRecipesSearchBody(
+            pantry: pantry,
+            profile: dietaryProfile,
+            equipment: equipment,
+            detected: detectedIngredients,
+            maxResults: maxResults
+        )
+
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "content-type")
+        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+        request.setValue(anthropicVersion, forHTTPHeaderField: "anthropic-version")
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        request.timeoutInterval = 60
+
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await URLSession.shared.data(for: request)
+        } catch {
+            throw APIError.network(error)
+        }
+
+        guard let http = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        guard (200..<300).contains(http.statusCode) else {
+            let message = parseErrorMessage(from: data) ?? "HTTP \(http.statusCode)"
+            throw APIError.http(status: http.statusCode, message: message)
+        }
+
+        let text = try extractText(from: data)
+        return parseURLs(from: text)
+    }
+
     func analyze(image: UIImage) async throws -> AnalysisResult {
         guard let apiKey = KeychainService.getAPIKey() else {
             throw APIError.missingAPIKey
@@ -89,6 +140,107 @@ final class ClaudeAPIClient {
 
         let text = try extractText(from: data)
         return try decode(text: text)
+    }
+
+    // MARK: - allrecipes.com search request
+
+    private func makeAllRecipesSearchBody(
+        pantry: [PantryItem],
+        profile: DietaryProfile?,
+        equipment: [KitchenEquipment],
+        detected: [String]?,
+        maxResults: Int
+    ) -> [String: Any] {
+        var pantryNames = pantry.map { $0.name }
+        if let detected, !detected.isEmpty {
+            // Bias toward what's in the photo by listing those first.
+            pantryNames = detected + pantryNames.filter { !detected.contains($0) }
+        }
+
+        var dietaryConstraints: [String] = []
+        if let profile {
+            if profile.isVegan { dietaryConstraints.append("vegan") }
+            else if profile.isVegetarian { dietaryConstraints.append("vegetarian") }
+            if profile.isGlutenFree { dietaryConstraints.append("gluten-free") }
+            if profile.isDairyFree { dietaryConstraints.append("dairy-free") }
+            if profile.isNutFree { dietaryConstraints.append("nut-free") }
+            if !profile.allergies.isEmpty {
+                dietaryConstraints.append("avoid: \(profile.allergies.joined(separator: ", "))")
+            }
+        }
+        let availableEquipment = equipment
+            .filter { $0.isAvailable }
+            .map { $0.name }
+
+        let pantryLine = pantryNames.isEmpty
+            ? "no specific pantry — pick popular crowd-pleasers"
+            : pantryNames.prefix(20).joined(separator: ", ")
+        let dietaryLine = dietaryConstraints.isEmpty
+            ? "none"
+            : dietaryConstraints.joined(separator: ", ")
+        let equipmentLine = availableEquipment.isEmpty
+            ? "any"
+            : availableEquipment.joined(separator: ", ")
+
+        let prompt = """
+        Use web search to find \(maxResults) real recipe URLs from \
+        allrecipes.com that best match the user's pantry and dietary needs.
+
+        Pantry ingredients: \(pantryLine)
+        Dietary constraints: \(dietaryLine)
+        Available kitchen equipment: \(equipmentLine)
+
+        Hard requirements:
+        - Every URL must be a recipe page on allrecipes.com (host equals \
+        www.allrecipes.com or allrecipes.com, path contains /recipe/).
+        - Prefer recipes that use as many of the pantry ingredients as \
+        possible, and respect the dietary constraints.
+        - Return only canonical recipe pages — no collections, no slideshows.
+
+        Output ONLY a single JSON object on its own, no prose, no markdown \
+        fences, with this exact shape:
+        { "urls": ["https://www.allrecipes.com/recipe/...", ...] }
+        """
+
+        return [
+            "model": model,
+            "max_tokens": 1024,
+            "tools": [
+                [
+                    "type": "web_search_20250305",
+                    "name": "web_search",
+                    "max_uses": 3,
+                    "allowed_domains": ["allrecipes.com", "www.allrecipes.com"]
+                ]
+            ],
+            "messages": [
+                [
+                    "role": "user",
+                    "content": [
+                        ["type": "text", "text": prompt]
+                    ]
+                ]
+            ]
+        ]
+    }
+
+    private func parseURLs(from text: String) -> [URL] {
+        let candidate = extractJSONObject(from: text) ?? stripCodeFence(text)
+        guard let data = candidate.data(using: .utf8) else { return [] }
+
+        struct Wire: Decodable { let urls: [String]? }
+        guard let wire = try? JSONDecoder().decode(Wire.self, from: data),
+              let urls = wire.urls
+        else { return [] }
+
+        return urls.compactMap { raw -> URL? in
+            guard let url = URL(string: raw),
+                  let host = url.host?.lowercased(),
+                  host == "allrecipes.com" || host == "www.allrecipes.com",
+                  url.path.lowercased().contains("/recipe/")
+            else { return nil }
+            return url
+        }
     }
 
     // MARK: - Request body

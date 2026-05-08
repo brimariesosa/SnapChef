@@ -7,6 +7,7 @@ import SwiftUI
 import SwiftData
 
 struct RecipesView: View {
+    @Environment(\.modelContext) private var context
     @Query private var pantryItems: [PantryItem]
     @Query private var profiles: [DietaryProfile]
     @Query private var equipment: [KitchenEquipment]
@@ -80,10 +81,10 @@ struct RecipesView: View {
             .navigationTitle("Recipes")
             .searchable(text: $searchText, prompt: "Search recipes")
             .task {
-                await loadRecipes()
+                await loadRecipes(forceRefresh: false)
             }
             .refreshable {
-                await loadRecipes()
+                await loadRecipes(forceRefresh: true)
             }
         }
     }
@@ -151,14 +152,19 @@ struct RecipesView: View {
         .padding(.vertical, 60)
     }
 
-    private func loadRecipes() async {
-        isLoading = true
+    private func loadRecipes(forceRefresh: Bool) async {
+        isLoading = recipes.isEmpty
         let profile = profiles.first { $0.isActive }
-        recipes = await MockDataService.shared.matchRecipes(
+        let fetched = await AllRecipesService.shared.fetchMatching(
             pantry: pantryItems,
             dietaryProfile: profile,
-            equipment: equipment
+            equipment: equipment,
+            context: context,
+            forceRefresh: forceRefresh
         )
+        recipes = fetched.sorted {
+            $0.matchScore(pantry: pantryItems) > $1.matchScore(pantry: pantryItems)
+        }
         isLoading = false
     }
 }
@@ -215,6 +221,31 @@ struct RecipeCard: View {
         }
     }
 
+    @ViewBuilder
+    private var cardThumbnail: some View {
+        if let imageURL = recipe.imageURL, let url = URL(string: imageURL) {
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .success(let image):
+                    image.resizable().scaledToFill()
+                default:
+                    cardFallback
+                }
+            }
+        } else {
+            cardFallback
+        }
+    }
+
+    private var cardFallback: some View {
+        ZStack {
+            Rectangle().fill(heroGradient)
+            Image(systemName: recipe.imageName)
+                .font(.system(size: 36, weight: .light))
+                .foregroundStyle(.white)
+        }
+    }
+
     var heroGradient: LinearGradient {
         switch matchPercent {
         case 80...:
@@ -229,15 +260,10 @@ struct RecipeCard: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(heroGradient)
-                    .frame(width: 84, height: 84)
-                    .shadow(color: .black.opacity(0.12), radius: 6, y: 3)
-                Image(systemName: recipe.imageName)
-                    .font(.system(size: 36, weight: .light))
-                    .foregroundStyle(.white)
-            }
+            cardThumbnail
+                .frame(width: 84, height: 84)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .shadow(color: .black.opacity(0.12), radius: 6, y: 3)
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(recipe.title)
