@@ -1,0 +1,19 @@
+# macOS
+.DS_Store
+
+# Xcode — per-user workspace state
+xcuserdata/
+*.xcuserstate
+*.xcuserdatad/
+
+# Swift / build artifacts
+build/
+DerivedData/
+*.swiftpm
+.swiftpm/
+.build/
+Package.resolved
+
+# Anthropic / API keys (never commit)
+*.env
+.env.local
