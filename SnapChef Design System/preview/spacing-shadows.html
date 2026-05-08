@@ -1,0 +1,19 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;padding:24px;background:var(--bg);}
+  .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;}
+  .card{height:80px;background:#fff;border-radius:18px;display:flex;align-items:center;justify-content:center;font:700 12px/1.2 var(--font-display);color:var(--fg-1);text-align:center;padding:8px;}
+  .s1{box-shadow:0 2px 8px rgba(31,26,18,.04);}
+  .s2{box-shadow:0 3px 10px rgba(34,105,64,.12);}
+  .s3{box-shadow:0 4px 14px rgba(31,26,18,.06);}
+  .s4{box-shadow:0 8px 20px rgba(34,105,64,.18);}
+  .cta{box-shadow:0 10px 24px rgba(34,105,64,.35);background:linear-gradient(135deg,#226940,#56A56E,#82DAB2);color:#fff;}
+</style></head>
+<body><div class="grid">
+  <div class="card s1">shadow-1<br><span style="font-weight:500;color:var(--fg-2);font-size:10px">subtle</span></div>
+  <div class="card s2">shadow-2<br><span style="font-weight:500;color:var(--fg-2);font-size:10px">tinted lift</span></div>
+  <div class="card s3">shadow-3<br><span style="font-weight:500;color:var(--fg-2);font-size:10px">card</span></div>
+  <div class="card s4">shadow-4<br><span style="font-weight:500;color:var(--fg-2);font-size:10px">elevated</span></div>
+  <div class="card cta">shadow-cta</div>
+</div></body></html>

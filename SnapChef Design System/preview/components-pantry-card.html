@@ -1,0 +1,32 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;padding:24px;background:var(--bg);}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .card{padding:14px;background:#fff;border-radius:18px;border:1px solid rgba(34,105,64,.18);box-shadow:0 8px 12px rgba(0,0,0,.04);}
+  .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .ic{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;background:linear-gradient(135deg,var(--c),var(--c2));box-shadow:0 6px 8px rgba(0,0,0,.15);}
+  .ic svg{width:16px;height:16px;}
+  .stat{width:10px;height:10px;border-radius:50%;background:var(--s);box-shadow:0 0 0 4px rgba(0,0,0,.05);}
+  .name{font:700 16px/1.2 var(--font-display);color:var(--forest-dark);margin-bottom:4px;}
+  .meta{font:500 13px/1 var(--font-display);color:var(--warm-gray);display:flex;align-items:center;justify-content:space-between;}
+  .days{font-weight:600;}
+</style></head>
+<body><div class="grid">
+  <div class="card">
+    <div class="top">
+      <div class="ic" style="--c:#82DAB2;--c2:rgba(130,218,178,.65)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 C 8 6 6 10 6 14 a6 6 0 0 0 12 0 c0-4-2-8-6-12z"/></svg></div>
+      <div class="stat" style="--s:#2BB673"></div>
+    </div>
+    <div class="name">Spinach</div>
+    <div class="meta"><span>200 g · 2 batches</span><span class="days" style="color:#2BB673">5d</span></div>
+  </div>
+  <div class="card">
+    <div class="top">
+      <div class="ic" style="--c:#FF7062;--c2:rgba(255,112,98,.65)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12 h6 l2-3 2 3 h6"/><path d="M14 12 v6"/></svg></div>
+      <div class="stat" style="--s:#FF8A4C"></div>
+    </div>
+    <div class="name">Chicken thighs</div>
+    <div class="meta"><span>500 g</span><span class="days" style="color:#FF8A4C">2d</span></div>
+  </div>
+</div></body></html>

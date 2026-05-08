@@ -1,0 +1,307 @@
+/* SnapChef iOS UI kit — layout-only styles. Tokens come from colors_and_type.css. */
+
+.snap-app-bg {
+  position: relative; width: 100%; height: 100%;
+  background: var(--grad-bg);
+  overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.snap-blob { position: absolute; border-radius: 50%; filter: blur(80px); pointer-events: none; }
+
+/* nav chrome */
+.snap-large-title {
+  display: flex; justify-content: space-between; align-items: flex-end;
+  padding: 8px 16px 12px; flex-shrink: 0;
+}
+.snap-add-btn {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--grad-primary); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 6px 8px rgba(34,105,64,.35);
+}
+.snap-search {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 14px; background: rgba(118,118,128,.12);
+  border-radius: 10px; color: var(--warm-gray);
+  margin: 0 16px; flex-shrink: 0;
+}
+.snap-search input {
+  flex: 1; border: 0; outline: 0; background: transparent;
+  font: 500 16px/1.2 var(--font-display); color: var(--fg-1);
+}
+.snap-nav {
+  text-align: center; font: 700 17px/1 var(--font-display);
+  color: var(--forest-dark); padding: 12px 16px; flex-shrink: 0;
+}
+.snap-sheet-nav {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 16px; flex-shrink: 0;
+  border-bottom: 1px solid rgba(34,105,64,.08);
+}
+.snap-link { background: 0; border: 0; color: var(--forest);
+  font: 500 16px/1 var(--font-display); cursor: pointer; }
+.snap-link.bold { font-weight: 700; }
+
+.snap-screen {
+  padding: 16px; display: flex; flex-direction: column; gap: 16px;
+  flex: 1; min-height: 0;
+}
+.snap-screen.scroll { overflow-y: auto; padding-bottom: 96px; }
+
+/* tab bar */
+.snap-tabbar {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  display: flex; padding: 6px 12px 24px;
+  background: rgba(252,248,240,.92); backdrop-filter: blur(20px);
+  border-top: 0.5px solid rgba(31,26,18,.12); z-index: 10;
+}
+.snap-tab {
+  flex: 1; background: 0; border: 0; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 6px 4px; color: rgba(122,116,105,.8);
+  font: 600 10px/1 var(--font-display);
+}
+.snap-tab.active { color: var(--forest); }
+
+/* buttons */
+.snap-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; padding: 16px; border-radius: 999px; border: 0; cursor: pointer;
+  font: 700 16px/1 var(--font-display);
+}
+.snap-btn-primary {
+  background: var(--grad-primary); color: #fff;
+  box-shadow: 0 10px 14px rgba(34,105,64,.35);
+}
+.snap-btn-secondary {
+  background: rgba(255,255,255,.92); color: var(--forest-dark);
+  border: 1.5px solid rgba(34,105,64,.35);
+  box-shadow: 0 4px 6px rgba(31,26,18,.05);
+  font-weight: 600; padding: 14px 16px;
+}
+.snap-btn-sunset {
+  background: var(--grad-sunset); color: #fff;
+  box-shadow: 0 10px 14px rgba(255,112,98,.35);
+}
+.snap-demo-btn {
+  align-self: center; display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(226,92,138,.12); color: var(--berry);
+  border: 0; padding: 8px 16px; border-radius: 999px; cursor: pointer;
+  font: 600 14px/1 var(--font-display);
+}
+
+/* pantry */
+.snap-pantry-card {
+  text-align: left; background: #fff; border: 1px solid; border-radius: 18px;
+  padding: 14px; display: flex; flex-direction: column; gap: 10px;
+  cursor: pointer;
+}
+.snap-pantry-card .row {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.snap-pantry-card .meta {
+  display: flex; align-items: center; gap: 6px;
+  font: 500 13px/1 var(--font-display); color: var(--warm-gray);
+  justify-content: space-between;
+}
+.snap-pantry-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+}
+
+.snap-expiring-section { display: flex; flex-direction: column; gap: 12px; }
+.snap-expiring-section .head {
+  display: flex; align-items: center; gap: 8px;
+}
+.snap-expiring-section .count {
+  background: var(--coral); color: #fff;
+  font: 700 12px/1 var(--font-display);
+  padding: 3px 8px; border-radius: 999px;
+}
+.snap-expiring-section .strip {
+  display: flex; gap: 12px; overflow-x: auto;
+  margin: 0 -16px; padding: 0 16px;
+}
+.snap-expiring-card {
+  flex: 0 0 130px; padding: 14px; border-radius: 18px;
+  display: flex; flex-direction: column; gap: 8px;
+  color: #fff;
+}
+
+.snap-chip-row {
+  display: flex; gap: 8px; overflow-x: auto;
+  margin: 0 -16px; padding: 4px 16px;
+  scrollbar-width: none;
+}
+.snap-chip-row::-webkit-scrollbar { display: none; }
+.snap-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 14px; border-radius: 999px; cursor: pointer;
+  font: 600 14px/1 var(--font-display); white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* recipe */
+.snap-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.snap-stat {
+  background: #fff; border-radius: 18px; padding: 14px 8px;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  box-shadow: 0 8px 12px rgba(0,0,0,.06);
+}
+.snap-stat .ic {
+  width: 38px; height: 38px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; color: #fff;
+}
+.snap-recipe-card {
+  display: flex; gap: 14px; padding: 14px;
+  background: #fff; border-radius: 20px; border: 0;
+  box-shadow: 0 10px 14px rgba(0,0,0,.06);
+  cursor: pointer; text-align: left; width: 100%;
+}
+.snap-recipe-card .hero {
+  width: 84px; height: 84px; border-radius: 16px;
+  display: flex; align-items: center; justify-content: center; color: #fff;
+  box-shadow: 0 6px 8px rgba(0,0,0,.12); flex-shrink: 0;
+}
+.snap-recipe-card .body {
+  flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0;
+}
+.snap-recipe-card .row {
+  display: flex; gap: 10px; align-items: center;
+  font: 600 12px/1 var(--font-display); color: var(--warm-gray);
+  margin-top: 2px;
+}
+.snap-recipe-card .row span { display: inline-flex; gap: 4px; align-items: center; }
+
+/* snap */
+.hero-card { padding-top: 8px; }
+.snap-ring {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  margin: 0 auto;
+}
+.snap-ring span {
+  position: absolute; inset: 0; border: 2px solid rgba(34,105,64,.4);
+  border-radius: 50%; animation: snapPulse 2.6s infinite ease-out;
+}
+.snap-ring span:nth-child(2) { animation-delay: .5s; border-color: rgba(34,105,64,.28); }
+.snap-ring span:nth-child(3) { animation-delay: 1s;  border-color: rgba(34,105,64,.16); }
+@keyframes snapPulse { 0% { transform: scale(.85); opacity: 1; } 100% { transform: scale(1.35); opacity: 0; } }
+
+.snap-scan-placeholder {
+  position: relative;
+  background:
+    linear-gradient(135deg, rgba(34,105,64,.08), rgba(130,218,178,.16), rgba(255,178,122,.18));
+  border-radius: 28px; height: 300px;
+  display: flex; align-items: center; justify-content: center;
+}
+.snap-scan-placeholder::before {
+  content: ""; position: absolute; inset: 0; border-radius: 28px;
+  border: 2px dashed rgba(34,105,64,.35); pointer-events: none;
+}
+.snap-scan-core {
+  position: relative; z-index: 2;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+}
+
+.actions { display: flex; flex-direction: column; gap: 12px; }
+
+.snap-scan-overlay {
+  position: absolute; inset: 0; background: rgba(0,0,0,.5); z-index: 20;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+
+/* onboarding */
+.snap-onboard {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 28px; padding: 32px 16px;
+}
+.snap-onboard .hero { position: relative; width: 240px; height: 240px;
+  display: flex; align-items: center; justify-content: center; }
+.snap-onboard .halo {
+  position: absolute; inset: 0; border-radius: 50%; opacity: .18;
+  animation: snapBreath 2.5s infinite ease-in-out alternate;
+}
+.snap-onboard .orb {
+  width: 180px; height: 180px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; color: #fff;
+  box-shadow: 0 24px 24px rgba(0,0,0,.18);
+}
+@keyframes snapBreath { from { transform: scale(.95); } to { transform: scale(1.05); } }
+.snap-onboard .dots { display: flex; gap: 8px; padding: 0 0 8px; }
+.snap-onboard .dots span {
+  width: 8px; height: 8px; border-radius: 999px; background: rgba(122,116,105,.25);
+  transition: width .35s var(--ease-spring), background .35s;
+}
+.snap-onboard .dots span.on { width: 24px; background: var(--forest); }
+.snap-onboard .actions { width: 100%; max-width: 320px; }
+.snap-skip {
+  background: 0; border: 0; color: var(--warm-gray);
+  font: 500 14px/1 var(--font-display); padding: 12px; cursor: pointer;
+  align-self: center;
+}
+
+/* scan results */
+.snap-detection-list { display: flex; flex-direction: column; gap: 8px; }
+.snap-detection-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px; background: #fff; border-radius: 12px; cursor: pointer;
+}
+.snap-detection-row .check {
+  width: 24px; height: 24px; border-radius: 50%;
+  border: 2px solid rgba(122,116,105,.3);
+  display: flex; align-items: center; justify-content: center; color: #fff;
+  flex-shrink: 0;
+}
+.snap-detection-row .check.on { background: var(--forest); border-color: var(--forest); }
+.snap-detection-row .ic {
+  width: 36px; height: 36px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.snap-detection-row .body { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.snap-detection-row .body .row { display: flex; align-items: center; gap: 6px; }
+.snap-detection-row .pantry-tag {
+  font: 700 10px/1 var(--font-display); color: var(--accent);
+  background: rgba(255,138,76,.15); padding: 3px 6px; border-radius: 999px;
+}
+.snap-add-missed {
+  background: rgba(34,105,64,.08); color: var(--forest);
+  border: 0; border-radius: 12px; padding: 12px;
+  font: 500 14px/1 var(--font-display); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+
+/* profile */
+.snap-profile-hero {
+  display: flex; align-items: center; gap: 14px; padding: 16px;
+  background: #fff; border-radius: 20px; box-shadow: 0 8px 12px rgba(0,0,0,.06);
+}
+.snap-profile-hero .orb {
+  width: 56px; height: 56px; border-radius: 50%;
+  background: var(--grad-primary); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+}
+.snap-toggle-card { background: #fff; border-radius: 16px; padding: 4px 16px;
+  box-shadow: 0 4px 8px rgba(0,0,0,.04); }
+.snap-toggle-card .row { display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 0; border-bottom: 1px solid rgba(34,105,64,.08); }
+.snap-toggle-card .row:last-child { border-bottom: 0; }
+.snap-toggle-card .toggle {
+  width: 51px; height: 31px; border-radius: 999px; background: rgba(122,116,105,.3);
+  position: relative; transition: background .2s;
+}
+.snap-toggle-card .toggle span {
+  position: absolute; top: 2px; left: 2px; width: 27px; height: 27px;
+  border-radius: 50%; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,.2);
+  transition: transform .2s;
+}
+.snap-toggle-card .toggle.on { background: var(--forest); }
+.snap-toggle-card .toggle.on span { transform: translateX(20px); }
+.snap-equip-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.snap-equip-grid .equip {
+  background: #fff; padding: 14px; border-radius: 14px; text-align: center;
+  font: 600 14px/1 var(--font-display); color: var(--warm-gray);
+  border: 1.5px solid rgba(34,105,64,.12);
+}
+.snap-equip-grid .equip.on {
+  background: linear-gradient(135deg, rgba(34,105,64,.08), rgba(130,218,178,.18));
+  color: var(--forest-dark); border-color: rgba(34,105,64,.35);
+}

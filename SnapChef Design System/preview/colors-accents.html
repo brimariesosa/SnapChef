@@ -1,0 +1,19 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;padding:20px;background:var(--bg);}
+  .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;}
+  .sw{aspect-ratio:1/1;border-radius:var(--r-5);position:relative;overflow:hidden;border:1px solid var(--border-soft);}
+  .sw .lbl{position:absolute;left:10px;bottom:8px;font:700 11px/1 var(--font-display);}
+  .sw .hex{position:absolute;left:10px;top:8px;font:600 10px/1 var(--font-mono);opacity:.8;}
+  .dark{color:#fff;}.light{color:var(--fg-1);}
+</style></head>
+<body><div class="grid">
+  <div class="sw dark" style="background:#FF8A4C"><span class="hex">#FF8A4C</span><span class="lbl">accent</span></div>
+  <div class="sw dark" style="background:#FF7062"><span class="hex">#FF7062</span><span class="lbl">coral</span></div>
+  <div class="sw light" style="background:#FFB27A"><span class="hex">#FFB27A</span><span class="lbl">peach</span></div>
+  <div class="sw light" style="background:#FED56E"><span class="hex">#FED56E</span><span class="lbl">butter</span></div>
+  <div class="sw light" style="background:#82DAB2"><span class="hex">#82DAB2</span><span class="lbl">mint</span></div>
+  <div class="sw dark" style="background:#E25C8A"><span class="hex">#E25C8A</span><span class="lbl">berry</span></div>
+  <div class="sw light" style="background:#7ABCE8"><span class="hex">#7ABCE8</span><span class="lbl">sky</span></div>
+</div></body></html>

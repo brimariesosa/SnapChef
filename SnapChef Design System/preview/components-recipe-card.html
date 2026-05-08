@@ -1,0 +1,28 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;padding:24px;background:var(--bg);}
+  .card{display:flex;gap:14px;padding:14px;background:#fff;border-radius:20px;box-shadow:0 10px 14px rgba(0,0,0,.06);}
+  .hero{width:84px;height:84px;border-radius:16px;background:linear-gradient(135deg,#226940,#56A56E,#82DAB2);display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 6px 8px rgba(0,0,0,.12);flex-shrink:0;}
+  .hero svg{width:36px;height:36px;}
+  .body{flex:1;display:flex;flex-direction:column;gap:6px;min-width:0;}
+  .name{font:700 17px/1.2 var(--font-display);color:var(--forest-dark);}
+  .desc{font:500 13px/1.4 var(--font-display);color:var(--warm-gray);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+  .row{display:flex;gap:10px;align-items:center;font:600 12px/1 var(--font-display);color:var(--warm-gray);margin-top:2px;}
+  .row svg{width:12px;height:12px;}
+  .match{margin-left:auto;background:linear-gradient(135deg,#2BB673,#82DAB2);color:#fff;padding:4px 10px;border-radius:999px;font-weight:800;box-shadow:0 4px 6px rgba(0,0,0,.1);}
+</style></head>
+<body>
+  <div class="card">
+    <div class="hero"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M5 3 v8 a3 3 0 0 0 3 3 v7"/><path d="M9 3 v6"/><path d="M19 3 c -2 1 -3 4 -3 7 c 0 1 1 2 3 2 v9"/></svg></div>
+    <div class="body">
+      <div class="name">Tomato basil galette</div>
+      <div class="desc">Free-form tart with summer tomatoes, ricotta, and a fistful of basil. Uses up the bread you already have.</div>
+      <div class="row">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7 v5 l3 2"/></svg>35m
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 19 c 1-3 4-5 6-5 s 5 2 6 5"/></svg>4
+        <span class="match">82%</span>
+      </div>
+    </div>
+  </div>
+</body></html>

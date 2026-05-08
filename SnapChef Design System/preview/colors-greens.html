@@ -1,0 +1,18 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;padding:20px;background:var(--bg);}
+  .grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;}
+  .sw{aspect-ratio:1/1;border-radius:var(--r-5);position:relative;overflow:hidden;border:1px solid var(--border-soft);}
+  .sw .lbl{position:absolute;left:10px;bottom:8px;color:#fff;font:700 11px/1 var(--font-display);text-shadow:0 1px 2px rgba(0,0,0,.3);}
+  .sw .hex{position:absolute;left:10px;top:8px;color:rgba(255,255,255,.85);font:600 10px/1 var(--font-mono);}
+  .sw.light .lbl,.sw.light .hex{color:var(--fg-1);text-shadow:none;}
+</style></head>
+<body><div class="grid">
+  <div class="sw" style="background:#226940"><span class="hex">#226940</span><span class="lbl">forest</span></div>
+  <div class="sw" style="background:#12462A"><span class="hex">#12462A</span><span class="lbl">forest-dark</span></div>
+  <div class="sw" style="background:#56A56E"><span class="hex">#56A56E</span><span class="lbl">forest-light</span></div>
+  <div class="sw light" style="background:#9CC698"><span class="hex">#9CC698</span><span class="lbl">sage</span></div>
+  <div class="sw" style="background:#3F8252"><span class="hex">#3F8252</span><span class="lbl">basil</span></div>
+  <div class="sw" style="background:#6B9A5E"><span class="hex">#6B9A5E</span><span class="lbl">moss</span></div>
+</div></body></html>

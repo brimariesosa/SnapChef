@@ -1,0 +1,17 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;padding:20px;background:var(--ink);}
+  .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;}
+  .sw{aspect-ratio:1/1;border-radius:var(--r-5);position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.1);}
+  .sw .lbl{position:absolute;left:10px;bottom:8px;font:700 11px/1 var(--font-display);}
+  .sw .hex{position:absolute;left:10px;top:8px;font:600 10px/1 var(--font-mono);opacity:.7;}
+  .dark{color:var(--fg-1);}.light{color:#fff;}
+</style></head>
+<body><div class="grid">
+  <div class="sw dark" style="background:#FCF8F0"><span class="hex">#FCF8F0</span><span class="lbl">cream</span></div>
+  <div class="sw dark" style="background:#FFF2E6"><span class="hex">#FFF2E6</span><span class="lbl">cream-warm</span></div>
+  <div class="sw dark" style="background:#F5FAF0"><span class="hex">#F5FAF0</span><span class="lbl">cream-cool</span></div>
+  <div class="sw light" style="background:#7A7469"><span class="hex">#7A7469</span><span class="lbl">warm-gray</span></div>
+  <div class="sw light" style="background:#1F1A12"><span class="hex">#1F1A12</span><span class="lbl">ink</span></div>
+</div></body></html>

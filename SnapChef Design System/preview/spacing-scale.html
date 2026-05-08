@@ -1,0 +1,19 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;padding:20px;background:var(--bg);}
+  .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;align-items:end;}
+  .col{display:flex;flex-direction:column;align-items:center;gap:6px;}
+  .box{width:100%;background:var(--forest);border-radius:6px;}
+  .lbl{font:700 11px/1 var(--font-display);color:var(--fg-1);}
+  .px{font:500 10px/1 var(--font-mono);color:var(--fg-2);}
+</style></head>
+<body><div class="grid">
+  <div class="col"><div class="box" style="height:4px"></div><span class="lbl">s-1</span><span class="px">4</span></div>
+  <div class="col"><div class="box" style="height:8px"></div><span class="lbl">s-2</span><span class="px">8</span></div>
+  <div class="col"><div class="box" style="height:12px"></div><span class="lbl">s-3</span><span class="px">12</span></div>
+  <div class="col"><div class="box" style="height:16px"></div><span class="lbl">s-4</span><span class="px">16</span></div>
+  <div class="col"><div class="box" style="height:24px"></div><span class="lbl">s-6</span><span class="px">24</span></div>
+  <div class="col"><div class="box" style="height:32px"></div><span class="lbl">s-8</span><span class="px">32</span></div>
+  <div class="col"><div class="box" style="height:48px"></div><span class="lbl">s-12</span><span class="px">48</span></div>
+</div></body></html>

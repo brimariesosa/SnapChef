@@ -1,0 +1,54 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>SnapChef Logo</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  body { margin:0; background:#F4EFE6; font-family: 'Montserrat', system-ui, sans-serif; color:#1A1A1A; padding:48px; }
+  .row { display:grid; grid-template-columns: 1fr 1fr; gap:32px; align-items:stretch; }
+  .card { background:#FFFFFF; border-radius:24px; padding:40px; display:flex; align-items:center; justify-content:center; min-height:240px; box-shadow:0 1px 2px rgba(0,0,0,.04); }
+  .card.dark { background:#1F2A24; }
+  .label { font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:#7B8378; margin-bottom:8px; }
+  .stack { display:flex; flex-direction:column; gap:8px; }
+  h1 { font-weight:800; font-size:28px; margin:0 0 24px 0; color:#226940; letter-spacing:-.5px; }
+  img.mark { width:140px; height:140px; }
+  /* wordmark + lockup inlined as SVG so they inherit Montserrat from this document */
+  .word-svg { width:280px; height:auto; display:block; }
+  .lock-svg { width:380px; height:auto; display:block; }
+  .word-svg text, .lock-svg text { font-family: 'Montserrat', system-ui, sans-serif; font-weight: 800; letter-spacing: -3px; }
+</style></head>
+<body>
+  <h1>Logo</h1>
+  <div class="row">
+    <div class="stack">
+      <div class="label">Mark</div>
+      <div class="card"><img class="mark" src="../assets/logo-mark.svg" alt="SnapChef mark"></div>
+    </div>
+    <div class="stack">
+      <div class="label">Mark / dark</div>
+      <div class="card dark"><img class="mark" src="../assets/logo-mark.svg" alt="SnapChef mark"></div>
+    </div>
+    <div class="stack">
+      <div class="label">Wordmark</div>
+      <div class="card">
+        <svg class="word-svg" viewBox="0 0 560 120" xmlns="http://www.w3.org/2000/svg">
+          <text x="0" y="92" font-size="88" fill="#226940">snapchef</text>
+          <circle cx="430" cy="22" r="9" fill="#E07856"/>
+        </svg>
+      </div>
+    </div>
+    <div class="stack">
+      <div class="label">Horizontal lockup</div>
+      <div class="card">
+        <svg class="lock-svg" viewBox="0 0 760 200" xmlns="http://www.w3.org/2000/svg">
+          <g transform="translate(20, 20)">
+            <rect width="160" height="160" rx="38" fill="#226940"/>
+            <path d="M 106 46 C 106 38, 97 32, 83 32 C 64 32, 51 42, 51 58 C 51 73, 62 79, 80 83 C 98 87, 109 91, 109 102 C 109 112, 98 118, 83 118 C 69 118, 58 114, 54 104 L 54 115 C 61 124, 72 128, 83 128 C 104 128, 118 118, 118 102 C 118 86, 106 80, 88 76 C 72 73, 61 69, 61 58 C 61 49, 70 41, 83 41 C 93 41, 99 44, 102 51 Z" fill="#F4EFE6"/>
+            <path d="M 102 51 C 105 48, 110 47, 115 48 C 113 53, 110 56, 106 58 Z" fill="#F4EFE6"/>
+            <circle cx="118" cy="40" r="6" fill="#E07856"/>
+          </g>
+          <text x="210" y="138" font-size="96" letter-spacing="-3.5" fill="#226940">snapchef</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+</body></html>

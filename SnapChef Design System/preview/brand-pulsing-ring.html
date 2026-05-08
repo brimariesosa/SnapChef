@@ -1,0 +1,17 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;padding:24px;background:var(--bg);display:flex;justify-content:center;align-items:center;}
+  .ring{position:relative;width:220px;height:220px;display:flex;align-items:center;justify-content:center;}
+  .r{position:absolute;inset:0;border:2px solid rgba(34,105,64,.4);border-radius:50%;animation:pulse 2.6s infinite ease-out;}
+  .r:nth-child(2){animation-delay:.5s;border-color:rgba(34,105,64,.28);}
+  .r:nth-child(3){animation-delay:1s;border-color:rgba(34,105,64,.16);}
+  @keyframes pulse{0%{transform:scale(.85);opacity:1;}100%{transform:scale(1.35);opacity:0;}}
+  .core{width:92px;height:92px;background:linear-gradient(135deg,#226940,#56A56E,#82DAB2);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 14px 20px rgba(34,105,64,.35);position:relative;z-index:2;}
+  .core svg{width:40px;height:40px;}
+</style></head>
+<body>
+  <div class="ring"><div class="r"></div><div class="r"></div><div class="r"></div>
+    <div class="core"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 7 v10 a2 2 0 0 0 2 2 h14 a2 2 0 0 0 2 -2 v-10 a2 2 0 0 0 -2 -2 h-3 l-1.5-2 h-5 l-1.5 2 h-3 a2 2 0 0 0 -2 2z"/><circle cx="12" cy="12" r="4"/></svg></div>
+  </div>
+</body></html>

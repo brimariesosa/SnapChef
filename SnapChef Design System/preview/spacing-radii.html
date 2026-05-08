@@ -1,0 +1,18 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;padding:20px;background:var(--bg);}
+  .grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;align-items:end;}
+  .col{display:flex;flex-direction:column;align-items:center;gap:6px;}
+  .box{width:72px;height:72px;background:#fff;border:1.5px solid var(--border);}
+  .lbl{font:700 11px/1 var(--font-display);color:var(--fg-1);}
+  .px{font:500 10px/1 var(--font-mono);color:var(--fg-2);}
+</style></head>
+<body><div class="grid">
+  <div class="col"><div class="box" style="border-radius:8px"></div><span class="lbl">r-1</span><span class="px">8</span></div>
+  <div class="col"><div class="box" style="border-radius:12px"></div><span class="lbl">r-3</span><span class="px">12</span></div>
+  <div class="col"><div class="box" style="border-radius:16px"></div><span class="lbl">r-5</span><span class="px">16</span></div>
+  <div class="col"><div class="box" style="border-radius:20px"></div><span class="lbl">r-7</span><span class="px">20</span></div>
+  <div class="col"><div class="box" style="border-radius:28px"></div><span class="lbl">r-9</span><span class="px">28</span></div>
+  <div class="col"><div class="box" style="border-radius:999px;width:120px;height:44px"></div><span class="lbl">pill</span><span class="px">∞</span></div>
+</div></body></html>
