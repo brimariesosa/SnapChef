@@ -283,6 +283,11 @@ final class ClaudeAPIClient {
         Rules:
         - Only list ingredients you can clearly see in the photo. Use singular common names \
         (e.g. "Tomato", "Cheddar Cheese", "Chicken Breast").
+        - Identify ingredients generically — never include brand or manufacturer names. \
+        Strip the brand and return only the food itself: "Heinz Tomato Ketchup" → \
+        "Tomato Ketchup", "Barilla Penne Pasta" → "Penne Pasta", "Philadelphia Cream \
+        Cheese" → "Cream Cheese", "Activia Strawberry Yogurt" → "Strawberry Yogurt". \
+        Keep the descriptive food terms (variety, cut, flavor) but drop the brand.
         - For each ingredient, look for a printed expiration / use-by / best-before date \
         on the packaging in the photo. If a date is clearly readable, return it as \
         "expirationDate" in ISO format YYYY-MM-DD. If no date is visible or you are not \
