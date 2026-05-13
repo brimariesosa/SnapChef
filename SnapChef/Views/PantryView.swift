@@ -5,6 +5,7 @@
 
 import SwiftUI
 import SwiftData
+import UserNotifications
 
 struct PantryView: View {
     @Environment(\.modelContext) private var context
@@ -14,6 +15,7 @@ struct PantryView: View {
     @State private var selectedCategory: String = "All"
     @State private var showingAddSheet = false
     @State private var showingNotifications = false
+    @State private var showingClearConfirmation = false
 
     private var unreadNotificationsCount: Int {
         notifications.filter { !$0.isRead }.count
@@ -62,6 +64,18 @@ struct PantryView: View {
             .navigationBarTitleDisplayMode(.large)
             .searchable(text: $searchText, prompt: "Search ingredients")
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        showingClearConfirmation = true
+                    } label: {
+                        Image(systemName: "trash")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(items.isEmpty ? Theme.warmGray.opacity(0.5) : Theme.coral)
+                    }
+                    .disabled(items.isEmpty)
+                    .accessibilityLabel("Clear pantry")
+                }
+
                 ToolbarItem(placement: .topBarTrailing) {
                     HStack(spacing: 10) {
                         NotificationBellButton(
@@ -91,9 +105,29 @@ struct PantryView: View {
             .sheet(isPresented: $showingNotifications) {
                 NotificationsListView()
             }
+            .confirmationDialog(
+                "Clear your pantry?",
+                isPresented: $showingClearConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Clear Everything", role: .destructive) {
+                    clearPantry()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Removes all \(items.count) items and their batches. You can't undo this.")
+            }
             .onAppear { syncNotifications() }
             .onChange(of: items.count) { _, _ in syncNotifications() }
         }
+    }
+
+    private func clearPantry() {
+        for item in items {
+            context.delete(item)
+        }
+        try? context.save()
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
     }
 
     private func syncNotifications() {
