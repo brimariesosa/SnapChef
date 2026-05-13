@@ -11,10 +11,12 @@ struct RecipesView: View {
     @Query private var pantryItems: [PantryItem]
     @Query private var profiles: [DietaryProfile]
     @Query private var equipment: [KitchenEquipment]
+    @Query(sort: \CachedRecipe.lastAccessed, order: .reverse) private var cachedRecipes: [CachedRecipe]
 
     @State private var recipes: [Recipe] = []
     @State private var isLoading = false
     @State private var isRefreshing = false
+    @State private var errorMessage: String?
     @State private var searchText = ""
     @State private var selectedFilter: RecipeFilter = .all
 
@@ -185,9 +187,23 @@ struct RecipesView: View {
     }
 
     private func loadRecipes(forceRefresh: Bool) async {
+        // Show whatever we have cached immediately so the screen never
+        // blanks on cold launch.
+        if recipes.isEmpty {
+            let cached = cachedRecipes.compactMap { $0.decoded() }
+            if !cached.isEmpty {
+                recipes = cached
+            }
+        }
+
+        // Only hit Claude when the user explicitly asks (button / pull to
+        // refresh) or when we have nothing to show.
+        let shouldFetch = forceRefresh || recipes.isEmpty
+        guard shouldFetch else { return }
+
         if recipes.isEmpty {
             isLoading = true
-        } else if forceRefresh {
+        } else {
             isRefreshing = true
         }
         defer {
@@ -196,16 +212,45 @@ struct RecipesView: View {
         }
 
         let profile = profiles.first { $0.isActive }
-        let fetched = await AllRecipesService.shared.fetchMatching(
-            pantry: pantryItems,
-            dietaryProfile: profile,
-            equipment: equipment,
-            context: context,
-            forceRefresh: forceRefresh
-        )
-        recipes = fetched.sorted {
-            $0.matchScore(pantry: pantryItems) > $1.matchScore(pantry: pantryItems)
+        do {
+            let generated = try await ClaudeAPIClient.shared.generateRecipes(
+                pantry: pantryItems,
+                dietaryProfile: profile,
+                equipment: equipment,
+                detectedIngredients: nil,
+                count: 8
+            )
+            recipes = generated.sorted {
+                $0.matchScore(pantry: pantryItems) > $1.matchScore(pantry: pantryItems)
+            }
+            errorMessage = nil
+            persist(recipes)
+        } catch let error as ClaudeAPIClient.APIError {
+            errorMessage = error.errorDescription
+            if recipes.isEmpty {
+                recipes = sampleRecipes
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+            if recipes.isEmpty {
+                recipes = sampleRecipes
+            }
         }
+    }
+
+    private func persist(_ recipes: [Recipe]) {
+        // Each fresh generation replaces the previous batch so the cache
+        // always reflects the user's latest pantry / preferences.
+        let existing = (try? context.fetch(FetchDescriptor<CachedRecipe>())) ?? []
+        for entry in existing { context.delete(entry) }
+
+        for recipe in recipes {
+            guard let blob = CachedRecipe.encode(recipe) else { continue }
+            context.insert(
+                CachedRecipe(sourceURL: recipe.id.uuidString, jsonBlob: blob)
+            )
+        }
+        try? context.save()
     }
 }
 

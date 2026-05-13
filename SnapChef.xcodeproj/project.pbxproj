@@ -27,8 +27,6 @@
 		A100000012000000 /* KeychainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000012000000 /* KeychainService.swift */; };
 		A100000013000000 /* ClaudeAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000013000000 /* ClaudeAPIClient.swift */; };
 		A100000014000000 /* APIKeySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000014000000 /* APIKeySettingsView.swift */; };
-		A100000015000000 /* AllRecipesService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000015000000 /* AllRecipesService.swift */; };
-		A100000016000000 /* JSONLDParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000016000000 /* JSONLDParser.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -52,8 +50,6 @@
 		B100000012000000 /* KeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainService.swift; sourceTree = "<group>"; };
 		B100000013000000 /* ClaudeAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeAPIClient.swift; sourceTree = "<group>"; };
 		B100000014000000 /* APIKeySettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIKeySettingsView.swift; sourceTree = "<group>"; };
-		B100000015000000 /* AllRecipesService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AllRecipesService.swift; sourceTree = "<group>"; };
-		B100000016000000 /* JSONLDParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONLDParser.swift; sourceTree = "<group>"; };
 		C100000001000000 /* SnapChef.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SnapChef.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -121,8 +117,6 @@
 				B100000011000000 /* DemoLibrary.swift */,
 				B100000012000000 /* KeychainService.swift */,
 				B100000013000000 /* ClaudeAPIClient.swift */,
-				B100000015000000 /* AllRecipesService.swift */,
-				B100000016000000 /* JSONLDParser.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -223,8 +217,6 @@
 				A100000012000000 /* KeychainService.swift in Sources */,
 				A100000013000000 /* ClaudeAPIClient.swift in Sources */,
 				A100000014000000 /* APIKeySettingsView.swift in Sources */,
-				A100000015000000 /* AllRecipesService.swift in Sources */,
-				A100000016000000 /* JSONLDParser.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

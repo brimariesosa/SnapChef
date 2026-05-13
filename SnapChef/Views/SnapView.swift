@@ -269,14 +269,7 @@ struct SnapView: View {
 
         if let demo = pendingDemoRecipe {
             detectedItems = await MockDataService.shared.identifyIngredients(for: demo)
-            // Try to upgrade the demo recipe to the real allrecipes.com
-            // version of the same dish; fall back to the bundled sample
-            // when the network/API isn't available.
-            let upgraded = await AllRecipesService.shared.fetchByTitle(
-                demo.title,
-                context: context
-            )
-            matchedRecipe = upgraded ?? demo
+            matchedRecipe = demo
             claudeRecipes = []
             showingResults = true
             return
@@ -288,19 +281,18 @@ struct SnapView: View {
             matchedRecipe = nil
             showingResults = true
 
-            // Replace Claude's invented recipes with real allrecipes.com
-            // recipes biased toward the detected ingredients. Run after the
-            // results sheet is already showing so the user sees their
-            // ingredients immediately.
+            // Ask Claude for fresh recipe ideas biased toward what we just
+            // detected in the photo. Run after the results sheet is already
+            // showing so the user sees their ingredients immediately.
             let profile = profiles.first { $0.isActive }
-            let sourced = await AllRecipesService.shared.fetchForDetected(
-                ingredients: result.ingredients,
+            let generated = try? await ClaudeAPIClient.shared.generateRecipes(
                 pantry: pantryItems,
                 dietaryProfile: profile,
                 equipment: equipment,
-                context: context
+                detectedIngredients: result.ingredients.map { $0.name },
+                count: 6
             )
-            claudeRecipes = sourced
+            claudeRecipes = generated ?? []
         } catch let error as ClaudeAPIClient.APIError {
             scanError = error.errorDescription
         } catch {

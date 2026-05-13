@@ -165,9 +165,11 @@ enum ExpirationStatus {
 
 // MARK: - Cached Recipe (persisted)
 //
-// One CachedRecipe per allrecipes.com URL we've fetched. The full Recipe
-// struct is JSON-encoded into `jsonBlob` so the schema doesn't need to track
-// every Recipe field. `lastAccessed` powers LRU eviction at 20 entries.
+// Persists the last batch of Claude-generated recipes so the Recipes tab
+// and the post-scan suggestion pool survive cold launches without hitting
+// the API again. `sourceURL` is the unique key (recipe UUID string for
+// generated recipes); the full Recipe struct is JSON-encoded into
+// `jsonBlob` so the schema doesn't need to track every Recipe field.
 
 @Model
 final class CachedRecipe {

@@ -140,10 +140,14 @@ recipe sourcing. No third-party dependencies.
 implicit — when adding fields, default them so existing stores keep
 working.
 
-**Recipes.** Sourced from allrecipes.com via Claude `web_search` →
-on-device JSON-LD parse → SwiftData LRU cache (max 20). Touch points:
-`Services/AllRecipesService.swift`, `Services/JSONLDParser.swift`,
-`Services/ClaudeAPIClient.searchAllRecipesURLs`. Hardcoded
+**Recipes.** Generated directly by Claude (Sonnet) from the user's
+pantry + dietary profile + available kitchen equipment via
+`ClaudeAPIClient.generateRecipes(...)`. No web search, no scraping
+(allrecipes.com blocks crawlers). The Recipes tab calls it on first
+appear and on the "Fresh Ideas From Your Pantry" CTA; the post-scan
+sheet calls it with `detectedIngredients` biasing toward the photo.
+Each fresh generation replaces the previous batch in `CachedRecipe`
+so the cache always reflects the user's current pantry. Hardcoded
 `sampleRecipes` in `MockDataService.swift` is the offline fallback —
 keep it small and don't expand it as a primary source.
 

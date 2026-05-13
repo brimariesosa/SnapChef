@@ -51,27 +51,27 @@ final class ClaudeAPIClient {
 
     // MARK: - Public
 
-    /// Asks Claude to web-search allrecipes.com and return up to ~8 candidate
-    /// recipe URLs that match the pantry / dietary profile / equipment.
-    /// The actual recipe content is fetched + parsed locally from those URLs;
-    /// here we just need a curated list of links.
-    func searchAllRecipesURLs(
+    /// Asks Claude to invent fresh recipes the user can cook right now given
+    /// their pantry, dietary profile, and available kitchen equipment. Pure
+    /// text-based generation — no web search, no scraping. `detectedIngredients`
+    /// biases the output toward items in a freshly-scanned photo.
+    func generateRecipes(
         pantry: [PantryItem],
         dietaryProfile: DietaryProfile?,
         equipment: [KitchenEquipment],
         detectedIngredients: [String]? = nil,
-        maxResults: Int = 8
-    ) async throws -> [URL] {
+        count: Int = 8
+    ) async throws -> [Recipe] {
         guard let apiKey = KeychainService.getAPIKey() else {
             throw APIError.missingAPIKey
         }
 
-        let body = makeAllRecipesSearchBody(
+        let body = makeRecipeGenerationBody(
             pantry: pantry,
             profile: dietaryProfile,
             equipment: equipment,
             detected: detectedIngredients,
-            maxResults: maxResults
+            count: count
         )
 
         var request = URLRequest(url: endpoint)
@@ -80,7 +80,7 @@ final class ClaudeAPIClient {
         request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
         request.setValue(anthropicVersion, forHTTPHeaderField: "anthropic-version")
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
-        request.timeoutInterval = 60
+        request.timeoutInterval = 90
 
         let data: Data
         let response: URLResponse
@@ -99,7 +99,7 @@ final class ClaudeAPIClient {
         }
 
         let text = try extractText(from: data)
-        return parseURLs(from: text)
+        return try decodeRecipes(text: text)
     }
 
     func analyze(image: UIImage) async throws -> AnalysisResult {
@@ -142,14 +142,14 @@ final class ClaudeAPIClient {
         return try decode(text: text)
     }
 
-    // MARK: - allrecipes.com search request
+    // MARK: - Recipe generation request
 
-    private func makeAllRecipesSearchBody(
+    private func makeRecipeGenerationBody(
         pantry: [PantryItem],
         profile: DietaryProfile?,
         equipment: [KitchenEquipment],
         detected: [String]?,
-        maxResults: Int
+        count: Int
     ) -> [String: Any] {
         var pantryNames = pantry.map { $0.name }
         if let detected, !detected.isEmpty {
@@ -158,6 +158,7 @@ final class ClaudeAPIClient {
         }
 
         var dietaryConstraints: [String] = []
+        var allergyLine: String?
         if let profile {
             if profile.isVegan { dietaryConstraints.append("vegan") }
             else if profile.isVegetarian { dietaryConstraints.append("vegetarian") }
@@ -165,7 +166,7 @@ final class ClaudeAPIClient {
             if profile.isDairyFree { dietaryConstraints.append("dairy-free") }
             if profile.isNutFree { dietaryConstraints.append("nut-free") }
             if !profile.allergies.isEmpty {
-                dietaryConstraints.append("avoid: \(profile.allergies.joined(separator: ", "))")
+                allergyLine = profile.allergies.joined(separator: ", ")
             }
         }
         let availableEquipment = equipment
@@ -173,67 +174,76 @@ final class ClaudeAPIClient {
             .map { $0.name }
 
         let pantryLine = pantryNames.isEmpty
-            ? "no specific pantry — pick popular crowd-pleasers"
-            : pantryNames.prefix(20).joined(separator: ", ")
+            ? "no specific pantry — invent a varied set assuming common staples only"
+            : pantryNames.prefix(40).joined(separator: ", ")
         let dietaryLine = dietaryConstraints.isEmpty
             ? "none"
             : dietaryConstraints.joined(separator: ", ")
         let equipmentLine = availableEquipment.isEmpty
-            ? "any"
+            ? "standard stovetop and oven"
             : availableEquipment.joined(separator: ", ")
+        let allergyClause = allergyLine.map {
+            "Allergies (NEVER include, in any amount, including trace ingredients): \($0)"
+        } ?? "Allergies: none"
 
         let prompt = """
-        Use web search to find \(maxResults) real recipe URLs from \
-        allrecipes.com that the user can actually cook RIGHT NOW with the \
-        ingredients they already have.
+        You are SnapChef. Invent \(count) recipe ideas the user can cook \
+        RIGHT NOW with what they already have. Output ONLY a single JSON \
+        object — no prose, no markdown fences, no commentary.
 
         Pantry ingredients: \(pantryLine)
         Dietary constraints: \(dietaryLine)
+        \(allergyClause)
         Available kitchen equipment: \(equipmentLine)
 
-        Think of the pantry as a closed set. Before picking a recipe, \
-        identify its core ingredients (the protein/base/sauce/starch that \
-        define the dish) and verify every core ingredient is in the pantry. \
-        Example: if the pantry is "pasta, tomato sauce, garlic", search for \
-        pasta-and-tomato-sauce recipes, NOT chicken or beef recipes that \
-        happen to also call for garlic.
+        Hard rules — apply to every recipe you draft:
+        - Every core ingredient (protein, base, vegetable, sauce, starch, \
+        dairy) must be in the pantry. The user is assumed to have common \
+        staples: salt, pepper, cooking oil, butter, water, sugar, vinegar, \
+        common dried herbs and spices. Nothing else is implied.
+        - Before keeping a draft, mentally check: "does this need anything \
+        not on that list?" If yes, discard the draft and try a different \
+        recipe. Don't substitute on the user's behalf.
+        - Respect dietary constraints absolutely. Allergies are \
+        non-negotiable — drop any recipe that touches an allergen.
+        - Only call out equipment the user actually has. If the recipe \
+        needs equipment they don't have, drop it.
+        - Pick varied recipes (different cuisines, techniques, meals of \
+        the day) so the user has real choice within their pantry.
+        - If the pantry is too sparse for \(count) genuinely-cookable recipes, \
+        return fewer rather than padding with recipes that need missing \
+        ingredients.
+        - Use generic ingredient names — no brand names ("Tomato Ketchup" \
+        not "Heinz Tomato Ketchup", "Penne Pasta" not "Barilla Penne Pasta").
 
-        Hard requirements:
-        - Every URL must be a recipe page on allrecipes.com (host equals \
-        www.allrecipes.com or allrecipes.com, path contains /recipe/).
-        - Every core ingredient of the recipe must be in the pantry. The \
-        user can supply common staples that don't need to be listed: salt, \
-        pepper, oil, butter, water, sugar, vinegar, common dried herbs and \
-        spices. Everything else must come from the pantry.
-        - Reject recipes that need a missing protein, missing vegetable, \
-        missing starch, or any other defining ingredient the user doesn't \
-        have. "Close enough" is not good enough — substituting is the \
-        user's call, not yours.
-        - Respect dietary constraints absolutely.
-        - Return only canonical recipe pages — no collections, no slideshows.
-        - Pick varied recipes (different cuisines, techniques, meals of the \
-        day) so the user has real choice within their pantry.
+        Schema:
+        {
+          "recipes": [
+            {
+              "title": "string (Title Case, short)",
+              "description": "one short warm sentence",
+              "prepTime": minutes (int),
+              "cookTime": minutes (int),
+              "servings": int,
+              "difficulty": "Easy" | "Medium" | "Hard",
+              "ingredients": [{ "name": "string", "amount": number, "unit": "string" }],
+              "steps": ["step 1", "step 2", ...],
+              "tags": ["vegan" | "vegetarian" | "gluten-free" | "dairy-free" | "nut-free" | "high-protein" | "quick" | "comfort" | "one-pan" | ...],
+              "requiredEquipment": ["Stovetop" | "Oven" | "Air Fryer" | "Slow Cooker" | "Blender" | "Microwave" | "Toaster" | "Grill" | "Instant Pot"]
+            }
+          ]
+        }
 
-        If the pantry is too sparse to make \(maxResults) genuinely-cookable \
-        recipes, return fewer URLs rather than padding with recipes that \
-        need missing ingredients.
-
-        Output ONLY a single JSON object on its own, no prose, no markdown \
-        fences, with this exact shape:
-        { "urls": ["https://www.allrecipes.com/recipe/...", ...] }
+        Style:
+        - 4-8 numbered steps each, concise and actionable.
+        - Realistic prepTime and cookTime in minutes.
+        - 2-5 tags per recipe, only those that are truthfully accurate.
+        - requiredEquipment lists only what the steps actually use.
         """
 
         return [
             "model": model,
-            "max_tokens": 1024,
-            "tools": [
-                [
-                    "type": "web_search_20250305",
-                    "name": "web_search",
-                    "max_uses": 3,
-                    "allowed_domains": ["allrecipes.com", "www.allrecipes.com"]
-                ]
-            ],
+            "max_tokens": 4096,
             "messages": [
                 [
                     "role": "user",
@@ -243,25 +253,6 @@ final class ClaudeAPIClient {
                 ]
             ]
         ]
-    }
-
-    private func parseURLs(from text: String) -> [URL] {
-        let candidate = extractJSONObject(from: text) ?? stripCodeFence(text)
-        guard let data = candidate.data(using: .utf8) else { return [] }
-
-        struct Wire: Decodable { let urls: [String]? }
-        guard let wire = try? JSONDecoder().decode(Wire.self, from: data),
-              let urls = wire.urls
-        else { return [] }
-
-        return urls.compactMap { raw -> URL? in
-            guard let url = URL(string: raw),
-                  let host = url.host?.lowercased(),
-                  host == "allrecipes.com" || host == "www.allrecipes.com",
-                  url.path.lowercased().contains("/recipe/")
-            else { return nil }
-            return url
-        }
     }
 
     // MARK: - Request body
@@ -377,6 +368,47 @@ final class ClaudeAPIClient {
         }
     }
 
+    private struct WireRecipeIngredient: Decodable {
+        let name: String
+        let amount: Double?
+        let unit: String?
+    }
+    private struct WireRecipe: Decodable {
+        let title: String
+        let description: String?
+        let prepTime: Int?
+        let cookTime: Int?
+        let servings: Int?
+        let difficulty: String?
+        let ingredients: [WireRecipeIngredient]?
+        let steps: [String]?
+        let tags: [String]?
+        let requiredEquipment: [String]?
+
+        func toRecipe() -> Recipe {
+            Recipe(
+                id: UUID(),
+                title: title.trimmingCharacters(in: .whitespacesAndNewlines),
+                description: description ?? "",
+                imageName: "fork.knife.circle.fill",
+                prepTime: prepTime ?? 10,
+                cookTime: cookTime ?? 20,
+                servings: servings ?? 2,
+                difficulty: difficulty ?? "Easy",
+                ingredients: (ingredients ?? []).map {
+                    RecipeIngredient(
+                        name: $0.name,
+                        amount: $0.amount ?? 1,
+                        unit: $0.unit ?? ""
+                    )
+                },
+                steps: steps ?? [],
+                tags: tags ?? [],
+                requiredEquipment: requiredEquipment ?? []
+            )
+        }
+    }
+
     private func decode(text: String) throws -> AnalysisResult {
         let candidate = extractJSONObject(from: text) ?? stripCodeFence(text)
         guard let jsonData = candidate.data(using: .utf8) else {
@@ -388,22 +420,6 @@ final class ClaudeAPIClient {
             let confidence: Double?
             let category: String?
             let expirationDate: String?
-        }
-        struct WireRecipeIngredient: Decodable {
-            let name: String
-            let amount: Double?
-            let unit: String?
-        }
-        struct WireRecipe: Decodable {
-            let title: String
-            let description: String?
-            let prepTime: Int?
-            let cookTime: Int?
-            let servings: Int?
-            let difficulty: String?
-            let ingredients: [WireRecipeIngredient]?
-            let steps: [String]?
-            let tags: [String]?
         }
         struct WirePayload: Decodable {
             let ingredients: [WireIngredient]?
@@ -431,30 +447,29 @@ final class ClaudeAPIClient {
             )
         }
 
-        let recipes: [Recipe] = (payload.recipes ?? []).map { wire in
-            Recipe(
-                id: UUID(),
-                title: wire.title,
-                description: wire.description ?? "",
-                imageName: "fork.knife.circle.fill",
-                prepTime: wire.prepTime ?? 10,
-                cookTime: wire.cookTime ?? 20,
-                servings: wire.servings ?? 2,
-                difficulty: wire.difficulty ?? "Easy",
-                ingredients: (wire.ingredients ?? []).map {
-                    RecipeIngredient(
-                        name: $0.name,
-                        amount: $0.amount ?? 1,
-                        unit: $0.unit ?? ""
-                    )
-                },
-                steps: wire.steps ?? [],
-                tags: wire.tags ?? [],
-                requiredEquipment: []
-            )
+        let recipes = (payload.recipes ?? []).map { $0.toRecipe() }
+        return AnalysisResult(ingredients: ingredients, recipes: recipes)
+    }
+
+    private func decodeRecipes(text: String) throws -> [Recipe] {
+        let candidate = extractJSONObject(from: text) ?? stripCodeFence(text)
+        guard let jsonData = candidate.data(using: .utf8) else {
+            throw APIError.decodingFailed("non-UTF8 payload")
         }
 
-        return AnalysisResult(ingredients: ingredients, recipes: recipes)
+        struct WirePayload: Decodable {
+            let recipes: [WireRecipe]?
+        }
+
+        let payload: WirePayload
+        do {
+            payload = try JSONDecoder().decode(WirePayload.self, from: jsonData)
+        } catch {
+            let snippet = candidate.prefix(240)
+            throw APIError.decodingFailed("\(error.localizedDescription) — got: \(snippet)")
+        }
+
+        return (payload.recipes ?? []).map { $0.toRecipe() }
     }
 
     private func parseErrorMessage(from data: Data) -> String? {
