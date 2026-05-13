@@ -314,23 +314,7 @@ struct RecipeCard: View {
         }
     }
 
-    @ViewBuilder
     private var cardThumbnail: some View {
-        if let imageURL = recipe.imageURL, let url = URL(string: imageURL) {
-            AsyncImage(url: url) { phase in
-                switch phase {
-                case .success(let image):
-                    image.resizable().scaledToFill()
-                default:
-                    cardFallback
-                }
-            }
-        } else {
-            cardFallback
-        }
-    }
-
-    private var cardFallback: some View {
         ZStack {
             Rectangle().fill(heroGradient)
             Image(systemName: recipe.imageName)

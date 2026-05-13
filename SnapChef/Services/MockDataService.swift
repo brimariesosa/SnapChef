@@ -2,8 +2,10 @@
 //  MockDataService.swift
 //  SnapChef
 //
-//  Stubs for Spoonacular API and Google Cloud Vision.
-//  Swap these out for real API calls later.
+//  Offline-only helpers: synthesises DetectedIngredient lists for the
+//  in-app Demo Library so a tester without an API key can still walk
+//  through a scan → results → recipe flow end-to-end. Also exports the
+//  `sampleRecipes` pool used as a fallback when Claude is unreachable.
 //
 
 import Foundation
@@ -12,87 +14,6 @@ import UIKit
 final class MockDataService {
     static let shared = MockDataService()
     private init() {}
-
-    // MARK: - Recipes (replaces Spoonacular)
-
-    func fetchAllRecipes() -> [Recipe] {
-        return sampleRecipes
-    }
-
-    func matchRecipes(
-        pantry: [PantryItem],
-        dietaryProfile: DietaryProfile?,
-        equipment: [KitchenEquipment]
-    ) async -> [Recipe] {
-        try? await Task.sleep(nanoseconds: 400_000_000)
-
-        var recipes = sampleRecipes
-
-        if let profile = dietaryProfile, profile.isActive {
-            recipes = recipes.filter { recipe in
-                if profile.isVegan && !recipe.tags.contains("vegan") { return false }
-                if profile.isVegetarian && !recipe.tags.contains("vegetarian") && !recipe.tags.contains("vegan") { return false }
-                if profile.isGlutenFree && !recipe.tags.contains("gluten-free") { return false }
-                if profile.isDairyFree && !recipe.tags.contains("dairy-free") { return false }
-                if profile.isNutFree && recipe.tags.contains("contains-nuts") { return false }
-                for allergen in profile.allergies {
-                    if recipe.ingredients.contains(where: { $0.name.lowercased().contains(allergen.lowercased()) }) {
-                        return false
-                    }
-                }
-                return true
-            }
-        }
-
-        let availableEquipment = Set(equipment.filter { $0.isAvailable }.map { $0.name })
-        if !availableEquipment.isEmpty {
-            recipes = recipes.filter { recipe in
-                recipe.requiredEquipment.allSatisfy { availableEquipment.contains($0) }
-            }
-        }
-
-        return recipes.sorted { $0.matchScore(pantry: pantry) > $1.matchScore(pantry: pantry) }
-    }
-
-    // MARK: - Vision (replaces Google Cloud Vision)
-
-    func identifyIngredients(from image: UIImage) async -> [DetectedIngredient] {
-        try? await Task.sleep(nanoseconds: 1_500_000_000)
-
-        let pool: [(name: String, confidence: Double, category: String)] = [
-            ("Tomato",          0.94, "Produce"),
-            ("Spinach",         0.91, "Produce"),
-            ("Chicken Breast",  0.88, "Meat"),
-            ("Milk",            0.96, "Dairy"),
-            ("Eggs",            0.93, "Dairy"),
-            ("Bell Pepper",     0.87, "Produce"),
-            ("Onion",           0.95, "Produce"),
-            ("Garlic",          0.90, "Produce"),
-            ("Cheddar Cheese",  0.84, "Dairy"),
-            ("Carrot",          0.89, "Produce"),
-            ("Salmon",          0.86, "Seafood"),
-            ("Strawberries",    0.90, "Produce"),
-            ("Avocado",         0.85, "Produce"),
-            ("Bread",           0.88, "Grains"),
-            ("Soy Sauce",       0.92, "Spices & Condiments"),
-            ("Black Pepper",    0.91, "Spices & Condiments"),
-            ("Mustard",         0.88, "Spices & Condiments")
-        ]
-
-        let detected = pool.shuffled().prefix(Int.random(in: 3...6)).map { entry in
-            DetectedIngredient(
-                name: entry.name,
-                confidence: entry.confidence,
-                category: entry.category,
-                suggestedShelfLife: ExpirationDefaults.days(
-                    forName: entry.name,
-                    category: FoodCategory(rawValue: entry.category)
-                )
-            )
-        }
-
-        return Array(detected)
-    }
 
     // Used by the in-app Demo Library so a known photo always
     // surfaces the exact ingredients of the matching recipe.

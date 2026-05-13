@@ -173,7 +173,7 @@ enum ExpirationStatus {
 
 @Model
 final class CachedRecipe {
-    @Attribute(.unique) var sourceURL: String
+    @Attribute(.unique) var sourceURL: String  // stores recipe.id.uuidString
     var jsonBlob: Data
     var fetchedAt: Date
     var lastAccessed: Date
@@ -314,17 +314,6 @@ struct Recipe: Identifiable, Hashable, Codable {
     let tags: [String]
     let requiredEquipment: [String]
 
-    /// allrecipes.com canonical URL when this recipe was sourced from
-    /// the live site. `nil` for hardcoded sample / Claude-invented recipes.
-    var sourceURL: String?
-    /// Display name of the source ("allrecipes.com").
-    var sourceName: String?
-    /// Real recipe photo URL (from JSON-LD `image`). When `nil`, the
-    /// existing SF Symbol `imageName` is used as a fallback.
-    var imageURL: String?
-    /// Aggregate rating (0-5) parsed from JSON-LD `aggregateRating.ratingValue`.
-    var rating: Double?
-
     var totalTime: Int { prepTime + cookTime }
 
     init(
@@ -339,11 +328,7 @@ struct Recipe: Identifiable, Hashable, Codable {
         ingredients: [RecipeIngredient],
         steps: [String],
         tags: [String],
-        requiredEquipment: [String],
-        sourceURL: String? = nil,
-        sourceName: String? = nil,
-        imageURL: String? = nil,
-        rating: Double? = nil
+        requiredEquipment: [String]
     ) {
         self.id = id
         self.title = title
@@ -357,10 +342,6 @@ struct Recipe: Identifiable, Hashable, Codable {
         self.steps = steps
         self.tags = tags
         self.requiredEquipment = requiredEquipment
-        self.sourceURL = sourceURL
-        self.sourceName = sourceName
-        self.imageURL = imageURL
-        self.rating = rating
     }
 
     func matchScore(pantry: [PantryItem]) -> Double {
@@ -580,5 +561,59 @@ enum ExpirationDefaults {
         if let byName = days(forName: name) { return byName }
         if let category = category { return days(for: category) }
         return 7
+    }
+}
+
+// MARK: - Pantry Staples
+
+/// Items so universally on hand that auto-detecting them just adds
+/// noise. Fresh herbs / produce are NOT in this list — they spoil and
+/// deserve a slot in the pantry.
+enum PantryStaples {
+    static let denyList: Set<String> = [
+        // Salt
+        "salt", "table salt", "sea salt", "kosher salt",
+        "fine salt", "coarse salt", "iodized salt",
+        "rock salt", "himalayan salt", "pink himalayan salt",
+
+        // Pepper
+        "pepper", "black pepper", "white pepper",
+        "ground pepper", "cracked pepper", "peppercorns",
+
+        // Water
+        "water", "tap water", "sparkling water", "distilled water",
+
+        // Sugar
+        "sugar", "white sugar", "granulated sugar", "caster sugar",
+
+        // Plain cooking oils (specialty oils — olive, sesame, coconut —
+        // expire and stay trackable, so they're NOT in the deny list)
+        "vegetable oil", "canola oil", "sunflower oil",
+        "neutral oil", "cooking oil", "frying oil",
+
+        // Plain vinegars
+        "white vinegar", "distilled vinegar",
+
+        // Dried herbs & spices typically on the spice rack
+        "dried oregano", "oregano",
+        "dried basil", "basil leaves",
+        "dried thyme", "thyme",
+        "dried rosemary", "rosemary",
+        "paprika", "smoked paprika",
+        "cumin", "ground cumin", "cumin seeds",
+        "cinnamon", "ground cinnamon",
+        "garlic powder", "onion powder",
+        "chili powder", "chilli powder",
+        "cayenne", "cayenne pepper",
+        "nutmeg", "ground nutmeg",
+        "bay leaf", "bay leaves",
+        "ground ginger"
+    ]
+
+    static func isStaple(_ name: String) -> Bool {
+        let key = name
+            .lowercased()
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return denyList.contains(key)
     }
 }

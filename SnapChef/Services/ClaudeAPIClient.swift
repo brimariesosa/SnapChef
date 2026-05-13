@@ -20,7 +20,6 @@ final class ClaudeAPIClient {
 
     struct AnalysisResult {
         let ingredients: [DetectedIngredient]
-        let recipes: [Recipe]
     }
 
     enum APIError: LocalizedError {
@@ -261,9 +260,9 @@ final class ClaudeAPIClient {
         let allowedCategories = FoodCategory.allCases.map { $0.rawValue }.joined(separator: " | ")
 
         let prompt = """
-        You are SnapChef, an AI that identifies ingredients in food photos and suggests \
-        recipes that can be made with them. Analyze the attached photo and respond with \
-        ONLY a single JSON object — no prose, no markdown fences, no commentary.
+        You are SnapChef. Identify the ingredients in the attached photo and \
+        respond with ONLY a single JSON object — no prose, no markdown fences, \
+        no commentary.
 
         Schema:
         {
@@ -273,19 +272,6 @@ final class ClaudeAPIClient {
               "confidence": 0.0-1.0,
               "category": "<one of the allowed values>",
               "expirationDate": "YYYY-MM-DD" or null
-            }
-          ],
-          "recipes": [
-            {
-              "title": "string",
-              "description": "short blurb",
-              "prepTime": minutes (int),
-              "cookTime": minutes (int),
-              "servings": int,
-              "difficulty": "Easy" | "Medium" | "Hard",
-              "ingredients": [{ "name": "string", "amount": number, "unit": "string" }],
-              "steps": ["step 1", "step 2", ...],
-              "tags": ["tag", ...]
             }
           ]
         }
@@ -300,16 +286,22 @@ final class ClaudeAPIClient {
         "Tomato Ketchup", "Barilla Penne Pasta" → "Penne Pasta", "Philadelphia Cream \
         Cheese" → "Cream Cheese", "Activia Strawberry Yogurt" → "Strawberry Yogurt". \
         Keep the descriptive food terms (variety, cut, flavor) but drop the brand.
+        - Do NOT return basic kitchen staples that nobody tracks: salt, pepper, \
+        water, plain sugar, basic cooking oils (vegetable / canola / sunflower), \
+        plain vinegars, and the dried-spice-jar shelf staples (oregano, basil, \
+        thyme, rosemary, paprika, cumin, cinnamon, garlic powder, onion powder, \
+        chili powder, cayenne, nutmeg, bay leaves, ground ginger). FRESH herbs — \
+        a bunch of fresh basil on a counter, a sprig of fresh rosemary, fresh \
+        thyme bundled with string — DO count and should be included with the \
+        "fresh" qualifier in the name (e.g. "Fresh Basil"). The exclusion only \
+        applies to the dried / ground / jarred form on a spice rack. Specialty \
+        oils (olive oil, sesame oil, coconut oil) DO count — return them.
         - For each ingredient, look for a printed expiration / use-by / best-before date \
         on the packaging in the photo. If a date is clearly readable, return it as \
         "expirationDate" in ISO format YYYY-MM-DD. If no date is visible or you are not \
         confident, return null. Never guess. If only a month and year are printed, use \
         the last day of that month. If the date format is ambiguous (e.g. 03/04/26), \
         prefer the day-month-year reading and still return YYYY-MM-DD.
-        - Provide 3 to 6 recipe ideas that primarily use the detected ingredients. Recipes \
-        may include common pantry staples (salt, pepper, oil) even if not pictured.
-        - Keep recipe steps concise and numbered logically (4-8 steps each).
-        - Use realistic prepTime/cookTime in minutes.
         - Output JSON ONLY. Do not wrap in code fences. No leading or trailing text.
         """
 
@@ -423,7 +415,6 @@ final class ClaudeAPIClient {
         }
         struct WirePayload: Decodable {
             let ingredients: [WireIngredient]?
-            let recipes: [WireRecipe]?
         }
 
         let payload: WirePayload
@@ -434,12 +425,14 @@ final class ClaudeAPIClient {
             throw APIError.decodingFailed("\(error.localizedDescription) — got: \(snippet)")
         }
 
-        let ingredients: [DetectedIngredient] = (payload.ingredients ?? []).map { wire in
+        let ingredients: [DetectedIngredient] = (payload.ingredients ?? []).compactMap { wire in
+            let name = wire.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !PantryStaples.isStaple(name) else { return nil }
             let category = normalizedCategory(wire.category)
             let foodCategory = FoodCategory(rawValue: category)
-            let shelfLife = ExpirationDefaults.days(forName: wire.name, category: foodCategory)
+            let shelfLife = ExpirationDefaults.days(forName: name, category: foodCategory)
             return DetectedIngredient(
-                name: wire.name.trimmingCharacters(in: .whitespacesAndNewlines),
+                name: name,
                 confidence: max(0.0, min(1.0, wire.confidence ?? 0.85)),
                 category: category,
                 suggestedShelfLife: shelfLife,
@@ -447,8 +440,7 @@ final class ClaudeAPIClient {
             )
         }
 
-        let recipes = (payload.recipes ?? []).map { $0.toRecipe() }
-        return AnalysisResult(ingredients: ingredients, recipes: recipes)
+        return AnalysisResult(ingredients: ingredients)
     }
 
     private func decodeRecipes(text: String) throws -> [Recipe] {
