@@ -9,8 +9,6 @@ import SwiftData
 struct SnapView: View {
     @Environment(\.modelContext) private var context
     @Query private var pantryItems: [PantryItem]
-    @Query private var profiles: [DietaryProfile]
-    @Query private var equipment: [KitchenEquipment]
 
     @State private var showingCamera = false
     @State private var showingPhotoLibrary = false
@@ -22,8 +20,6 @@ struct SnapView: View {
     @State private var cameraPermissionDenied = false
 
     @State private var pendingDemoRecipe: Recipe?
-    @State private var matchedRecipe: Recipe?
-    @State private var claudeRecipes: [Recipe] = []
     @State private var scanError: String?
 
     var body: some View {
@@ -83,8 +79,6 @@ struct SnapView: View {
             .sheet(isPresented: $showingResults, onDismiss: resetAfterScan) {
                 ScanResultsView(
                     detectedItems: detectedItems,
-                    matchedRecipe: matchedRecipe,
-                    claudeRecipes: claudeRecipes,
                     pantryItems: pantryItems,
                     onAdd: addSelectedItems
                 )
@@ -269,8 +263,6 @@ struct SnapView: View {
 
         if let demo = pendingDemoRecipe {
             detectedItems = await MockDataService.shared.identifyIngredients(for: demo)
-            matchedRecipe = demo
-            claudeRecipes = []
             showingResults = true
             return
         }
@@ -278,21 +270,7 @@ struct SnapView: View {
         do {
             let result = try await ClaudeAPIClient.shared.analyze(image: image)
             detectedItems = result.ingredients
-            matchedRecipe = nil
             showingResults = true
-
-            // Ask Claude for fresh recipe ideas biased toward what we just
-            // detected in the photo. Run after the results sheet is already
-            // showing so the user sees their ingredients immediately.
-            let profile = profiles.first { $0.isActive }
-            let generated = try? await ClaudeAPIClient.shared.generateRecipes(
-                pantry: pantryItems,
-                dietaryProfile: profile,
-                equipment: equipment,
-                detectedIngredients: result.ingredients.map { $0.name },
-                count: 6
-            )
-            claudeRecipes = generated ?? []
         } catch let error as ClaudeAPIClient.APIError {
             scanError = error.errorDescription
         } catch {
@@ -329,9 +307,7 @@ struct SnapView: View {
     private func resetAfterScan() {
         capturedImage = nil
         detectedItems = []
-        matchedRecipe = nil
         pendingDemoRecipe = nil
-        claudeRecipes = []
     }
 }
 
@@ -495,19 +471,18 @@ struct DemoPhotoCard: View {
 // MARK: - Scan Results Sheet
 
 struct ScanResultsView: View {
-    let matchedRecipe: Recipe?
-    let claudeRecipes: [Recipe]
     let pantryItems: [PantryItem]
     let onAdd: ([DetectedIngredient]) -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @Query(sort: \CachedRecipe.lastAccessed, order: .reverse) private var cachedRecipes: [CachedRecipe]
+    @EnvironmentObject private var appState: AppState
 
     @State private var items: [DetectedIngredient]
     @State private var selected: Set<UUID>
     @State private var editingId: UUID?
     @State private var showingAddCustom = false
     @State private var didAdd = false
+    @State private var showingRecipeScopeDialog = false
 
     @State private var showingDuplicateSheet = false
     @State private var pendingFresh: [DetectedIngredient] = []
@@ -516,13 +491,9 @@ struct ScanResultsView: View {
 
     init(
         detectedItems: [DetectedIngredient],
-        matchedRecipe: Recipe?,
-        claudeRecipes: [Recipe] = [],
         pantryItems: [PantryItem],
         onAdd: @escaping ([DetectedIngredient]) -> Void
     ) {
-        self.matchedRecipe = matchedRecipe
-        self.claudeRecipes = claudeRecipes
         self.pantryItems = pantryItems
         self.onAdd = onAdd
         self._items = State(initialValue: detectedItems)
@@ -533,27 +504,6 @@ struct ScanResultsView: View {
         items.filter { selected.contains($0.id) }
     }
 
-    private var virtualPantryNames: [String] {
-        pantryItems.map { $0.name } + selectedItems.map { $0.name }
-    }
-
-    private var suggestionPool: [Recipe] {
-        // Prefer real cached recipes from allrecipes.com; fall back to the
-        // local sample pool if the cache is empty (e.g. first launch with
-        // no API key).
-        let cached = cachedRecipes.compactMap { $0.decoded() }
-        return cached.isEmpty ? sampleRecipes : cached
-    }
-
-    private var suggestedRecipes: [(recipe: Recipe, score: Double)] {
-        suggestionPool
-            .map { ($0, $0.matchScore(pantryNames: virtualPantryNames)) }
-            .filter { $0.1 > 0 }
-            .sorted { $0.1 > $1.1 }
-            .prefix(5)
-            .map { (recipe: $0.0, score: $0.1) }
-    }
-
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -561,12 +511,6 @@ struct ScanResultsView: View {
                     headerInfo
 
                     scannedItemsSection
-
-                    if !claudeRecipes.isEmpty {
-                        claudeRecipesSection
-                    }
-
-                    suggestionsSection
                 }
                 .padding(16)
             }
@@ -582,15 +526,9 @@ struct ScanResultsView: View {
                 ToolbarItem(placement: .topBarLeading) {
                     Button(didAdd ? "Done" : "Cancel") { dismiss() }
                 }
-                if !didAdd {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button("Add \(selectedItems.count)") {
-                            handleAddTapped()
-                        }
-                        .fontWeight(.semibold)
-                        .disabled(selectedItems.isEmpty)
-                    }
-                }
+            }
+            .safeAreaInset(edge: .bottom) {
+                bottomActions
             }
             .sheet(isPresented: $showingAddCustom) {
                 AddCustomDetectionSheet { newItem in
@@ -611,7 +549,62 @@ struct ScanResultsView: View {
                     }
                 )
             }
+            .confirmationDialog(
+                "Recipe ideas from…",
+                isPresented: $showingRecipeScopeDialog,
+                titleVisibility: .visible
+            ) {
+                Button("This photo only") {
+                    dispatchRecipes(.photoOnly)
+                }
+                Button("Photo + my pantry") {
+                    dispatchRecipes(.photoPlusPantry)
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Where should Claude pull the ingredients from?")
+            }
         }
+    }
+
+    private var bottomActions: some View {
+        VStack(spacing: 10) {
+            Button {
+                handleAddTapped()
+            } label: {
+                Text(didAdd
+                     ? "Added to Pantry"
+                     : "Add \(selectedItems.count) to Pantry")
+            }
+            .primaryButton()
+            .disabled(selectedItems.isEmpty || didAdd)
+
+            Button {
+                showingRecipeScopeDialog = true
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "fork.knife")
+                        .font(.system(size: 14, weight: .bold))
+                    Text("Get Recipe Ideas")
+                }
+            }
+            .secondaryButton()
+            .disabled(selectedItems.isEmpty)
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 12)
+        .padding(.bottom, 16)
+        .background(.ultraThinMaterial)
+    }
+
+    private func dispatchRecipes(_ scope: RecipeGenerationRequest.Scope) {
+        let names = selectedItems.map { $0.name }
+        appState.pendingRecipeRequest = RecipeGenerationRequest(
+            scope: scope,
+            detectedNames: names
+        )
+        appState.selectedTab = 1  // Recipes
+        dismiss()
     }
 
     // MARK: - Add flow
@@ -728,54 +721,6 @@ struct ScanResultsView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
                 .buttonStyle(.plain)
-            }
-        }
-    }
-
-    private var claudeRecipesSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            sectionTitle("Inspired by your photo")
-
-            VStack(spacing: 8) {
-                ForEach(claudeRecipes) { recipe in
-                    NavigationLink(destination: RecipeDetailView(recipe: recipe)) {
-                        SuggestionRow(
-                            recipe: recipe,
-                            matchPercent: 100,
-                            isHighlighted: true
-                        )
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-    }
-
-    private var suggestionsSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            sectionTitle("Recipe Suggestions")
-
-            if suggestedRecipes.isEmpty {
-                Text("Select at least one ingredient to see matching recipes.")
-                    .font(.system(size: 13))
-                    .foregroundStyle(Theme.warmGray)
-                    .padding(16)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-            } else {
-                VStack(spacing: 8) {
-                    ForEach(suggestedRecipes, id: \.recipe.id) { entry in
-                        NavigationLink(destination: RecipeDetailView(recipe: entry.recipe)) {
-                            SuggestionRow(
-                                recipe: entry.recipe,
-                                matchPercent: Int(entry.score * 100),
-                                isHighlighted: matchedRecipe?.id == entry.recipe.id
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
             }
         }
     }
@@ -1069,81 +1014,6 @@ struct EditDetectionRow: View {
             RoundedRectangle(cornerRadius: 12)
                 .stroke(Theme.forestGreen.opacity(0.4), lineWidth: 1)
         )
-    }
-}
-
-// MARK: - Recipe suggestion row
-
-struct SuggestionRow: View {
-    let recipe: Recipe
-    let matchPercent: Int
-    let isHighlighted: Bool
-
-    var matchColor: Color {
-        switch matchPercent {
-        case 80...: return Theme.forestGreen
-        case 50..<80: return Theme.accent
-        default: return Theme.warmGray
-        }
-    }
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: recipe.imageName)
-                .font(.system(size: 28, weight: .light))
-                .foregroundStyle(.white)
-                .frame(width: 56, height: 56)
-                .background(
-                    LinearGradient(
-                        colors: [Theme.forestGreen, Theme.forestGreenLight],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-
-            VStack(alignment: .leading, spacing: 4) {
-                if isHighlighted {
-                    Text("Recipe match")
-                        .font(.system(size: 11, weight: .semibold, design: .rounded))
-                        .foregroundStyle(Theme.forestGreen)
-                }
-                Text(recipe.title)
-                    .font(.system(size: 15, weight: .semibold, design: .rounded))
-                    .foregroundStyle(Theme.forestGreenDark)
-                    .lineLimit(1)
-                Text(recipe.description)
-                    .font(.system(size: 12, design: .rounded))
-                    .foregroundStyle(Theme.warmGray)
-                    .lineLimit(2)
-            }
-
-            Spacer(minLength: 8)
-
-            VStack(spacing: 4) {
-                Text("\(matchPercent)%")
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
-                    .background(matchColor)
-                    .clipShape(Capsule())
-                Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundStyle(Theme.warmGray)
-            }
-        }
-        .padding(12)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(
-                    isHighlighted ? Theme.forestGreen : Theme.forestGreen.opacity(0.18),
-                    lineWidth: isHighlighted ? 2 : 1
-                )
-        )
-        .shadow(color: .black.opacity(0.04), radius: 5, y: 2)
     }
 }
 

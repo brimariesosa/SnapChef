@@ -20,27 +20,33 @@ struct RootView: View {
 }
 
 struct MainTabView: View {
+    @EnvironmentObject var appState: AppState
+
     var body: some View {
-        TabView {
+        TabView(selection: $appState.selectedTab) {
             SnapView()
                 .tabItem {
                     Label("Snap", systemImage: "camera.fill")
                 }
+                .tag(0)
 
             RecipesView()
                 .tabItem {
                     Label("Recipes", systemImage: "fork.knife")
                 }
+                .tag(1)
 
             PantryView()
                 .tabItem {
                     Label("Pantry", systemImage: "cabinet.fill")
                 }
+                .tag(2)
 
             ProfileView()
                 .tabItem {
                     Label("Profile", systemImage: "person.fill")
                 }
+                .tag(3)
         }
         .tint(Theme.forestGreen)
         .onAppear {

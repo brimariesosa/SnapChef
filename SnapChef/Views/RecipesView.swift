@@ -8,6 +8,7 @@ import SwiftData
 
 struct RecipesView: View {
     @Environment(\.modelContext) private var context
+    @EnvironmentObject private var appState: AppState
     @Query private var pantryItems: [PantryItem]
     @Query private var profiles: [DietaryProfile]
     @Query private var equipment: [KitchenEquipment]
@@ -90,6 +91,14 @@ struct RecipesView: View {
             }
             .refreshable {
                 await loadRecipes(forceRefresh: true)
+            }
+            .onChange(of: appState.pendingRecipeRequest?.id) { _, newId in
+                guard newId != nil,
+                      let request = appState.pendingRecipeRequest else { return }
+                Task {
+                    await loadRecipes(forceRefresh: true, biasFrom: request)
+                    appState.pendingRecipeRequest = nil
+                }
             }
         }
     }
@@ -186,7 +195,10 @@ struct RecipesView: View {
         .padding(.vertical, 60)
     }
 
-    private func loadRecipes(forceRefresh: Bool) async {
+    private func loadRecipes(
+        forceRefresh: Bool,
+        biasFrom request: RecipeGenerationRequest? = nil
+    ) async {
         // Show whatever we have cached immediately so the screen never
         // blanks on cold launch.
         if recipes.isEmpty {
@@ -196,9 +208,9 @@ struct RecipesView: View {
             }
         }
 
-        // Only hit Claude when the user explicitly asks (button / pull to
-        // refresh) or when we have nothing to show.
-        let shouldFetch = forceRefresh || recipes.isEmpty
+        // Only hit Claude when the user explicitly asks (button, pull
+        // to refresh, post-scan handoff) or when we have nothing to show.
+        let shouldFetch = forceRefresh || recipes.isEmpty || request != nil
         guard shouldFetch else { return }
 
         if recipes.isEmpty {
@@ -211,13 +223,23 @@ struct RecipesView: View {
             isRefreshing = false
         }
 
+        let pantryForCall: [PantryItem]
+        let detectedForCall: [String]?
+        if let request = request {
+            detectedForCall = request.detectedNames
+            pantryForCall = (request.scope == .photoPlusPantry) ? pantryItems : []
+        } else {
+            pantryForCall = pantryItems
+            detectedForCall = nil
+        }
+
         let profile = profiles.first { $0.isActive }
         do {
             let generated = try await ClaudeAPIClient.shared.generateRecipes(
-                pantry: pantryItems,
+                pantry: pantryForCall,
                 dietaryProfile: profile,
                 equipment: equipment,
-                detectedIngredients: nil,
+                detectedIngredients: detectedForCall,
                 count: 8
             )
             recipes = generated.sorted {

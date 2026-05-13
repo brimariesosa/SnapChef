@@ -45,8 +45,23 @@ struct SnapChefApp: App {
 final class AppState: ObservableObject {
     @Published var hasCompletedOnboarding: Bool = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
 
+    /// Currently-selected tab index. Snap=0, Recipes=1, Pantry=2, Profile=3.
+    @Published var selectedTab: Int = 0
+
+    /// When SnapView hands a fresh detection set to the Recipes tab, this
+    /// gets populated. RecipesView consumes it via `.onChange` on the
+    /// request id and clears it after kicking off generation.
+    @Published var pendingRecipeRequest: RecipeGenerationRequest?
+
     func completeOnboarding() {
         hasCompletedOnboarding = true
         UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
     }
+}
+
+struct RecipeGenerationRequest: Identifiable, Equatable {
+    enum Scope { case photoOnly, photoPlusPantry }
+    let id = UUID()
+    let scope: Scope
+    let detectedNames: [String]
 }
