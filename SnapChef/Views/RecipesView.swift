@@ -14,6 +14,7 @@ struct RecipesView: View {
 
     @State private var recipes: [Recipe] = []
     @State private var isLoading = false
+    @State private var isRefreshing = false
     @State private var searchText = ""
     @State private var selectedFilter: RecipeFilter = .all
 
@@ -50,6 +51,8 @@ struct RecipesView: View {
             ScrollView {
                 VStack(spacing: 16) {
                     headerStats
+
+                    generateButton
 
                     filterChips
 
@@ -121,6 +124,27 @@ struct RecipesView: View {
         recipes.filter { $0.matchScore(pantry: pantryItems) >= 0.6 }.count
     }
 
+    private var generateButton: some View {
+        Button {
+            Task { await loadRecipes(forceRefresh: true) }
+        } label: {
+            HStack(spacing: 10) {
+                if isRefreshing {
+                    ProgressView()
+                        .tint(.white)
+                        .controlSize(.small)
+                } else {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 15, weight: .bold))
+                }
+                Text(isRefreshing ? "Stirring up ideas..." : "Fresh Ideas From Your Pantry")
+            }
+        }
+        .primaryButton()
+        .disabled(isLoading || isRefreshing)
+        .opacity(pantryItems.isEmpty ? 0.5 : 1)
+    }
+
     private var filterChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
@@ -161,7 +185,16 @@ struct RecipesView: View {
     }
 
     private func loadRecipes(forceRefresh: Bool) async {
-        isLoading = recipes.isEmpty
+        if recipes.isEmpty {
+            isLoading = true
+        } else if forceRefresh {
+            isRefreshing = true
+        }
+        defer {
+            isLoading = false
+            isRefreshing = false
+        }
+
         let profile = profiles.first { $0.isActive }
         let fetched = await AllRecipesService.shared.fetchMatching(
             pantry: pantryItems,
@@ -173,7 +206,6 @@ struct RecipesView: View {
         recipes = fetched.sorted {
             $0.matchScore(pantry: pantryItems) > $1.matchScore(pantry: pantryItems)
         }
-        isLoading = false
     }
 }
 

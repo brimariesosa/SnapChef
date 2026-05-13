@@ -184,18 +184,39 @@ final class ClaudeAPIClient {
 
         let prompt = """
         Use web search to find \(maxResults) real recipe URLs from \
-        allrecipes.com that best match the user's pantry and dietary needs.
+        allrecipes.com that the user can actually cook RIGHT NOW with the \
+        ingredients they already have.
 
         Pantry ingredients: \(pantryLine)
         Dietary constraints: \(dietaryLine)
         Available kitchen equipment: \(equipmentLine)
 
+        Think of the pantry as a closed set. Before picking a recipe, \
+        identify its core ingredients (the protein/base/sauce/starch that \
+        define the dish) and verify every core ingredient is in the pantry. \
+        Example: if the pantry is "pasta, tomato sauce, garlic", search for \
+        pasta-and-tomato-sauce recipes, NOT chicken or beef recipes that \
+        happen to also call for garlic.
+
         Hard requirements:
         - Every URL must be a recipe page on allrecipes.com (host equals \
         www.allrecipes.com or allrecipes.com, path contains /recipe/).
-        - Prefer recipes that use as many of the pantry ingredients as \
-        possible, and respect the dietary constraints.
+        - Every core ingredient of the recipe must be in the pantry. The \
+        user can supply common staples that don't need to be listed: salt, \
+        pepper, oil, butter, water, sugar, vinegar, common dried herbs and \
+        spices. Everything else must come from the pantry.
+        - Reject recipes that need a missing protein, missing vegetable, \
+        missing starch, or any other defining ingredient the user doesn't \
+        have. "Close enough" is not good enough — substituting is the \
+        user's call, not yours.
+        - Respect dietary constraints absolutely.
         - Return only canonical recipe pages — no collections, no slideshows.
+        - Pick varied recipes (different cuisines, techniques, meals of the \
+        day) so the user has real choice within their pantry.
+
+        If the pantry is too sparse to make \(maxResults) genuinely-cookable \
+        recipes, return fewer URLs rather than padding with recipes that \
+        need missing ingredients.
 
         Output ONLY a single JSON object on its own, no prose, no markdown \
         fences, with this exact shape:
