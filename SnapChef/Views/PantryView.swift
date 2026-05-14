@@ -21,7 +21,7 @@ struct PantryView: View {
         notifications.filter { !$0.isRead }.count
     }
 
-    var filteredItems: [PantryItem] {
+    private var filteredItems: [PantryItem] {
         items.filter { item in
             let matchesSearch = searchText.isEmpty || item.name.localizedCaseInsensitiveContains(searchText)
             let matchesCategory = selectedCategory == "All" || item.category == selectedCategory
@@ -29,90 +29,48 @@ struct PantryView: View {
         }
     }
 
-    var expiringItems: [PantryItem] {
-        items.filter {
-            $0.expirationStatus == .urgent || $0.expirationStatus == .soon
-        }
+    private var expiringItems: [PantryItem] {
+        items.filter { $0.expirationStatus == .urgent || $0.expirationStatus == .soon }
+    }
+
+    private var freshCount: Int {
+        items.filter { $0.expirationStatus == .fresh }.count
     }
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 20) {
+                VStack(alignment: .leading, spacing: 32) {
+                    titleBlock
+
+                    metricsRow
+
                     if !expiringItems.isEmpty {
                         expiringSection
                     }
 
-                    categoryPicker
+                    categorySection
 
-                    if filteredItems.isEmpty {
-                        emptyState
-                    } else {
-                        itemGrid
-                    }
+                    listSection
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 22)
+                .padding(.top, 8)
                 .padding(.bottom, 80)
             }
-            .background(
-                ZStack {
-                    Theme.appBackgroundGradient.ignoresSafeArea()
-                    DecorativeBlobs().ignoresSafeArea()
-                }
-            )
-            .navigationTitle("Pantry")
-            .navigationBarTitleDisplayMode(.large)
-            .searchable(text: $searchText, prompt: "Search ingredients")
+            .background(Theme.canvas.ignoresSafeArea())
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        showingClearConfirmation = true
-                    } label: {
-                        Image(systemName: "trash")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(items.isEmpty ? Theme.warmGray.opacity(0.5) : Theme.coral)
-                    }
-                    .disabled(items.isEmpty)
-                    .accessibilityLabel("Clear pantry")
-                }
-
-                ToolbarItem(placement: .topBarTrailing) {
-                    HStack(spacing: 10) {
-                        NotificationBellButton(
-                            unreadCount: unreadNotificationsCount,
-                            action: { showingNotifications = true }
-                        )
-
-                        Button {
-                            showingAddSheet = true
-                        } label: {
-                            ZStack {
-                                Circle()
-                                    .fill(Theme.primaryGradient)
-                                    .frame(width: 36, height: 36)
-                                    .shadow(color: Theme.forestGreen.opacity(0.35), radius: 6, y: 3)
-                                Image(systemName: "plus")
-                                    .font(.system(size: 16, weight: .bold))
-                                    .foregroundStyle(.white)
-                            }
-                        }
-                    }
-                }
+                ToolbarItem(placement: .principal) { Color.clear.frame(height: 1) }
             }
-            .sheet(isPresented: $showingAddSheet) {
-                AddItemView()
-            }
-            .sheet(isPresented: $showingNotifications) {
-                NotificationsListView()
-            }
+            .searchable(text: $searchText, prompt: "Search ingredients")
+            .sheet(isPresented: $showingAddSheet) { AddItemView() }
+            .sheet(isPresented: $showingNotifications) { NotificationsListView() }
             .confirmationDialog(
                 "Clear your pantry?",
                 isPresented: $showingClearConfirmation,
                 titleVisibility: .visible
             ) {
-                Button("Clear Everything", role: .destructive) {
-                    clearPantry()
-                }
+                Button("Clear Everything", role: .destructive) { clearPantry() }
                 Button("Cancel", role: .cancel) {}
             } message: {
                 Text("Removes all \(items.count) items and their batches. You can't undo this.")
@@ -122,10 +80,136 @@ struct PantryView: View {
         }
     }
 
-    private func clearPantry() {
-        for item in items {
-            context.delete(item)
+    // MARK: - Sections
+
+    private var titleBlock: some View {
+        HStack(alignment: .firstTextBaseline) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Pantry.")
+                    .font(.display(40, weight: .regular))
+                    .tracking(-0.6)
+                    .foregroundStyle(Theme.graphite)
+                Text(items.isEmpty ? "Nothing tracked yet." : "\(items.count) items, \(freshCount) fresh.")
+                    .font(.text(14))
+                    .foregroundStyle(Theme.stone)
+            }
+            Spacer()
+            HStack(spacing: 10) {
+                IconChipButton(icon: "bell", badge: unreadNotificationsCount) {
+                    showingNotifications = true
+                }
+                IconChipButton(icon: "plus", filled: true) {
+                    showingAddSheet = true
+                }
+                if !items.isEmpty {
+                    IconChipButton(icon: "trash", tint: Theme.coral) {
+                        showingClearConfirmation = true
+                    }
+                }
+            }
         }
+    }
+
+    private var metricsRow: some View {
+        HStack(spacing: 0) {
+            MetricTile(value: "\(items.count)", label: "In pantry")
+            verticalRule
+            MetricTile(value: "\(expiringItems.count)", label: "Use soon")
+            verticalRule
+            MetricTile(value: "\(freshCount)", label: "Fresh")
+        }
+        .padding(.vertical, 18)
+        .overlay(Hairline(), alignment: .top)
+        .overlay(Hairline(), alignment: .bottom)
+    }
+
+    private var verticalRule: some View {
+        Rectangle().fill(Theme.hairline).frame(width: 1, height: 28)
+    }
+
+    private var expiringSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            SectionEyebrow(text: "Use soon", trailing: "\(expiringItems.count)")
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(expiringItems) { item in
+                        NavigationLink(destination: ItemDetailView(item: item)) {
+                            ExpiringCard(item: item)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 1)
+            }
+        }
+    }
+
+    private var categorySection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            SectionEyebrow(text: "Categories")
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    QuietChip(label: "All", isSelected: selectedCategory == "All") {
+                        selectedCategory = "All"
+                    }
+                    ForEach(FoodCategory.allCases, id: \.self) { cat in
+                        QuietChip(
+                            label: cat.rawValue,
+                            icon: cat.icon,
+                            isSelected: selectedCategory == cat.rawValue
+                        ) {
+                            selectedCategory = cat.rawValue
+                        }
+                    }
+                }
+                .padding(.horizontal, 1)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var listSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            SectionEyebrow(text: "Ingredients", trailing: "\(filteredItems.count)")
+
+            if filteredItems.isEmpty {
+                emptyState
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(Array(filteredItems.enumerated()), id: \.element.id) { idx, item in
+                        NavigationLink(destination: ItemDetailView(item: item)) {
+                            PantryRow(item: item)
+                        }
+                        .buttonStyle(.plain)
+                        if idx < filteredItems.count - 1 {
+                            Hairline()
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private var emptyState: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Your pantry is empty.")
+                .font(.display(24, weight: .regular))
+                .foregroundStyle(Theme.graphite)
+            Text("Snap your fridge or add an item manually to start tracking what you have.")
+                .font(.text(15))
+                .foregroundStyle(Theme.stone)
+                .lineSpacing(2)
+            Button("Add First Item") { showingAddSheet = true }
+                .primaryButton()
+                .frame(maxWidth: 220)
+                .padding(.top, 6)
+        }
+        .padding(.vertical, 28)
+    }
+
+    private func clearPantry() {
+        for item in items { context.delete(item) }
         try? context.save()
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
     }
@@ -137,228 +221,94 @@ struct PantryView: View {
             context: context
         )
     }
-
-    private var expiringSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 8) {
-                ZStack {
-                    Circle()
-                        .fill(Theme.sunsetGradient)
-                        .frame(width: 28, height: 28)
-                    Image(systemName: "clock.badge.exclamationmark.fill")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(.white)
-                }
-                Text("Use soon")
-                    .font(.display(18))
-                    .foregroundStyle(Theme.forestGreenDark)
-                Text("\(expiringItems.count)")
-                    .font(.system(size: 12, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 2)
-                    .background(Capsule().fill(Theme.coral))
-                Spacer()
-            }
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(expiringItems) { item in
-                        NavigationLink(destination: ItemDetailView(item: item)) {
-                            ExpiringItemCard(item: item)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            }
-        }
-        .padding(.top, 8)
-    }
-
-    private var categoryPicker: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                CategoryChip(
-                    label: "All",
-                    color: Theme.forestGreen,
-                    isSelected: selectedCategory == "All"
-                ) {
-                    selectedCategory = "All"
-                }
-                ForEach(FoodCategory.allCases, id: \.self) { category in
-                    CategoryChip(
-                        label: category.rawValue,
-                        icon: category.icon,
-                        color: category.color,
-                        isSelected: selectedCategory == category.rawValue
-                    ) {
-                        selectedCategory = category.rawValue
-                    }
-                }
-            }
-            .padding(.vertical, 4)
-        }
-    }
-
-    private var itemGrid: some View {
-        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-            ForEach(filteredItems) { item in
-                NavigationLink(destination: ItemDetailView(item: item)) {
-                    PantryItemCard(item: item)
-                }
-                .buttonStyle(.plain)
-            }
-        }
-    }
-
-    private var emptyState: some View {
-        VStack(spacing: 18) {
-            ZStack {
-                Circle()
-                    .fill(Theme.primaryGradient)
-                    .frame(width: 130, height: 130)
-                    .shadow(color: Theme.forestGreen.opacity(0.3), radius: 20, y: 8)
-                Image(systemName: "cabinet.fill")
-                    .font(.system(size: 56, weight: .light))
-                    .foregroundStyle(.white)
-            }
-
-            Text("Your pantry is empty")
-                .font(.display(20))
-                .foregroundStyle(Theme.forestGreenDark)
-            Text("Tap the camera tab to snap your fridge, or add items manually.")
-                .font(.system(size: 15, design: .rounded))
-                .foregroundStyle(Theme.warmGray)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 32)
-
-            Button("Add First Item") {
-                showingAddSheet = true
-            }
-            .primaryButton()
-            .padding(.horizontal, 40)
-            .padding(.top, 12)
-        }
-        .padding(.vertical, 60)
-    }
 }
 
-struct CategoryChip: View {
-    let label: String
-    var icon: String? = nil
-    var color: Color? = nil
-    let isSelected: Bool
-    let action: () -> Void
+// MARK: - Small components
 
-    var tint: Color { color ?? Theme.forestGreen }
+struct IconChipButton: View {
+    let icon: String
+    var tint: Color = Theme.graphite
+    var filled: Bool = false
+    var badge: Int = 0
+    let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 6) {
-                if let icon = icon {
-                    Image(systemName: icon)
-                        .font(.system(size: 11, weight: .bold))
+            ZStack {
+                Circle()
+                    .fill(filled ? AnyShapeStyle(Theme.graphite) : AnyShapeStyle(Theme.bone))
+                    .frame(width: 38, height: 38)
+                    .overlay(
+                        Circle().strokeBorder(filled ? Color.clear : Theme.hairline, lineWidth: 1)
+                    )
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(filled ? .white : tint)
+                if badge > 0 {
+                    Circle()
+                        .fill(Theme.coral)
+                        .frame(width: 8, height: 8)
+                        .overlay(Circle().stroke(Theme.canvas, lineWidth: 2))
+                        .offset(x: 12, y: -12)
                 }
-                Text(label)
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 9)
-            .background(
-                Group {
-                    if isSelected {
-                        LinearGradient(
-                            colors: [tint, tint.opacity(0.7)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    } else {
-                        Color.white
-                    }
-                }
-            )
-            .foregroundStyle(isSelected ? .white : tint)
-            .clipShape(Capsule())
-            .overlay(
-                Capsule().stroke(tint.opacity(isSelected ? 0 : 0.4), lineWidth: 1.5)
-            )
-            .shadow(
-                color: isSelected ? tint.opacity(0.35) : .black.opacity(0.04),
-                radius: isSelected ? 8 : 3,
-                y: isSelected ? 4 : 1
-            )
         }
         .buttonStyle(.plain)
     }
 }
 
-struct PantryItemCard: View {
+struct PantryRow: View {
     let item: PantryItem
 
-    var category: FoodCategory? { FoodCategory(rawValue: item.category) }
-    var tint: Color { category?.color ?? Theme.forestGreen }
+    private var category: FoodCategory? { FoodCategory(rawValue: item.category) }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                ZStack {
-                    Circle()
-                        .fill(category?.gradient ?? Theme.primaryGradient)
-                        .frame(width: 38, height: 38)
-                        .shadow(color: tint.opacity(0.35), radius: 6, y: 3)
-                    Image(systemName: category?.icon ?? "bag.fill")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(.white)
+        HStack(spacing: 14) {
+            // Tiny status dot rail — single accent, not a gradient disc
+            Circle()
+                .fill(colorFor(status: item.expirationStatus))
+                .frame(width: 8, height: 8)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(item.name)
+                    .font(.text(16, weight: .medium))
+                    .foregroundStyle(Theme.graphite)
+                    .lineLimit(1)
+                HStack(spacing: 6) {
+                    Text(item.category)
+                    if item.batches.count > 1 {
+                        Text("·")
+                        Text("\(item.batches.count) batches")
+                    }
                 }
-                Spacer()
-                statusBadge
+                .font(.text(12))
+                .foregroundStyle(Theme.stone)
             }
 
-            Text(item.name)
-                .font(.system(size: 16, weight: .bold, design: .rounded))
-                .foregroundStyle(Theme.forestGreenDark)
-                .lineLimit(1)
+            Spacer()
 
-            HStack(spacing: 6) {
-                Text("\(formatted(item.totalQuantity)) \(item.unit)")
-                    .font(.system(size: 13, design: .rounded))
-                    .foregroundStyle(Theme.warmGray)
+            Text("\(formatted(item.totalQuantity)) \(item.unit)")
+                .font(.numeric(14, weight: .medium))
+                .foregroundStyle(Theme.graphiteSoft)
 
-                if item.batches.count > 1 {
-                    Text("· \(item.batches.count) batches")
-                        .font(.system(size: 11, weight: .medium, design: .rounded))
-                        .foregroundStyle(Theme.warmGray)
-                }
-
-                Spacer()
-
-                if let days = item.daysUntilExpiration {
-                    Text(days >= 0 ? "\(days)d" : "expired")
-                        .font(.system(size: 12, weight: .semibold, design: .rounded))
-                        .foregroundStyle(colorFor(status: item.expirationStatus))
-                }
+            if let days = item.daysUntilExpiration {
+                Text(days < 0 ? "expired" : "\(days)d")
+                    .font(.numeric(13, weight: .medium))
+                    .foregroundStyle(colorFor(status: item.expirationStatus))
+                    .frame(minWidth: 44, alignment: .trailing)
+            } else {
+                Text("—")
+                    .font(.numeric(13))
+                    .foregroundStyle(Theme.stoneLight)
+                    .frame(minWidth: 44, alignment: .trailing)
             }
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(Theme.stoneLight)
         }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(tint.opacity(0.18), lineWidth: 1)
-        )
-        .shadow(color: tint.opacity(0.12), radius: 8, y: 3)
-    }
-
-    @ViewBuilder
-    private var statusBadge: some View {
-        Circle()
-            .fill(colorFor(status: item.expirationStatus))
-            .frame(width: 10, height: 10)
-            .overlay(
-                Circle()
-                    .stroke(colorFor(status: item.expirationStatus).opacity(0.4), lineWidth: 4)
-            )
+        .padding(.vertical, 16)
+        .contentShape(Rectangle())
     }
 
     private func formatted(_ value: Double) -> String {
@@ -368,84 +318,42 @@ struct PantryItemCard: View {
     }
 }
 
-struct ExpiringItemCard: View {
+struct ExpiringCard: View {
     let item: PantryItem
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Image(systemName: FoodCategory(rawValue: item.category)?.icon ?? "bag.fill")
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(.white)
-
-            Text(item.name)
-                .font(.system(size: 14, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
-                .lineLimit(1)
-
-            if let days = item.daysUntilExpiration {
-                Text(days == 0 ? "Today" : "\(days)d left")
-                    .font(.system(size: 12, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.95))
-            }
-        }
-        .padding(14)
-        .frame(width: 130, alignment: .leading)
-        .background(
-            LinearGradient(
-                colors: [
-                    colorFor(status: item.expirationStatus),
-                    colorFor(status: item.expirationStatus).opacity(0.75)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 18))
-        .shadow(color: colorFor(status: item.expirationStatus).opacity(0.35), radius: 10, y: 5)
-    }
-}
-
-// MARK: - Notification bell
-
-struct NotificationBellButton: View {
-    let unreadCount: Int
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            ZStack {
-                Circle()
-                    .fill(Color.white)
-                    .frame(width: 36, height: 36)
-                    .overlay(
-                        Circle().stroke(Theme.forestGreen.opacity(0.25), lineWidth: 1)
-                    )
-                    .shadow(color: .black.opacity(0.05), radius: 4, y: 2)
-
-                Image(systemName: "bell.fill")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Theme.forestGreenDark)
-
-                if unreadCount > 0 {
-                    Circle()
-                        .fill(Theme.coral)
-                        .frame(width: 10, height: 10)
-                        .overlay(
-                            Circle().stroke(Color.white, lineWidth: 2)
-                        )
-                        .offset(x: 11, y: -11)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                StatusPill(status: item.expirationStatus, compact: true)
+                Spacer()
+                if let days = item.daysUntilExpiration {
+                    Text(days < 0 ? "expired" : days == 0 ? "today" : "\(days)d")
+                        .font(.numeric(12, weight: .semibold))
+                        .foregroundStyle(colorFor(status: item.expirationStatus))
                 }
             }
+            Spacer(minLength: 12)
+            Text(item.name)
+                .font(.text(15, weight: .semibold))
+                .foregroundStyle(Theme.graphite)
+                .lineLimit(1)
+            Text(item.category)
+                .font(.text(11))
+                .foregroundStyle(Theme.stone)
         }
-        .accessibilityLabel(
-            unreadCount > 0
-            ? "Notifications, \(unreadCount) unread"
-            : "Notifications"
+        .padding(14)
+        .frame(width: 150, height: 120, alignment: .topLeading)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Theme.bone)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(Theme.hairline, lineWidth: 1)
         )
     }
 }
 
-// MARK: - Notifications list
+// MARK: - Notifications
 
 struct NotificationsListView: View {
     @Environment(\.modelContext) private var context
@@ -454,44 +362,33 @@ struct NotificationsListView: View {
 
     var body: some View {
         NavigationStack {
-            Group {
-                if notifications.isEmpty {
-                    emptyState
-                } else {
-                    List {
-                        ForEach(notifications) { notification in
-                            NotificationRow(notification: notification)
-                                .listRowBackground(Color.clear)
-                                .listRowSeparator(.hidden)
-                                .onTapGesture {
-                                    if !notification.isRead {
-                                        notification.isRead = true
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    ScreenTitle(title: "Alerts.", subtitle: subtitle)
+
+                    if notifications.isEmpty {
+                        emptyState
+                    } else {
+                        VStack(spacing: 0) {
+                            ForEach(Array(notifications.enumerated()), id: \.element.id) { idx, n in
+                                NotificationRow(notification: n)
+                                    .onTapGesture {
+                                        if !n.isRead { n.isRead = true }
                                     }
-                                }
-                                .swipeActions {
-                                    Button(role: .destructive) {
-                                        context.delete(notification)
-                                    } label: {
-                                        Label("Delete", systemImage: "trash")
-                                    }
-                                }
+                                if idx < notifications.count - 1 { Hairline() }
+                            }
                         }
                     }
-                    .listStyle(.plain)
-                    .scrollContentBackground(.hidden)
                 }
+                .padding(.horizontal, 22)
+                .padding(.top, 8)
+                .padding(.bottom, 40)
             }
-            .background(
-                ZStack {
-                    Theme.appBackgroundGradient.ignoresSafeArea()
-                    DecorativeBlobs().ignoresSafeArea()
-                }
-            )
-            .navigationTitle("Notifications")
+            .background(Theme.canvas.ignoresSafeArea())
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Done") { dismiss() }
+                    Button("Done") { dismiss() }.foregroundStyle(Theme.graphite)
                 }
                 if !notifications.isEmpty {
                     ToolbarItem(placement: .topBarTrailing) {
@@ -503,7 +400,7 @@ struct NotificationsListView: View {
                                 for n in notifications { context.delete(n) }
                             }
                         } label: {
-                            Image(systemName: "ellipsis.circle")
+                            Image(systemName: "ellipsis").foregroundStyle(Theme.graphite)
                         }
                     }
                 }
@@ -511,21 +408,20 @@ struct NotificationsListView: View {
         }
     }
 
+    private var subtitle: String {
+        notifications.isEmpty ? "No alerts." : "\(notifications.count) total, \(notifications.filter { !$0.isRead }.count) unread."
+    }
+
     private var emptyState: some View {
-        VStack(spacing: 14) {
-            Image(systemName: "bell.slash.fill")
-                .font(.system(size: 44, weight: .light))
-                .foregroundStyle(Theme.warmGray)
-            Text("No notifications")
-                .font(.display(18))
-                .foregroundStyle(Theme.forestGreenDark)
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Nothing to worry about.")
+                .font(.display(22, weight: .regular))
+                .foregroundStyle(Theme.graphite)
             Text("You'll see alerts here when pantry items are expiring in the next 3 days.")
-                .font(.system(size: 14, design: .rounded))
-                .foregroundStyle(Theme.warmGray)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 36)
+                .font(.text(14))
+                .foregroundStyle(Theme.stone)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.vertical, 20)
     }
 }
 
@@ -534,59 +430,34 @@ struct NotificationRow: View {
 
     private var tint: Color {
         switch notification.daysUntilExpiry {
-        case 0: return .red
-        case 1: return .orange
-        case 2: return .orange
-        default: return .yellow
+        case 0: return Theme.coral
+        case 1, 2: return Theme.accent
+        default: return Theme.butter
         }
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill(tint.opacity(0.18))
-                    .frame(width: 38, height: 38)
-                Image(systemName: "clock.badge.exclamationmark.fill")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(tint)
-            }
-
+        HStack(alignment: .top, spacing: 14) {
+            Circle().fill(tint).frame(width: 8, height: 8).padding(.top, 7)
             VStack(alignment: .leading, spacing: 4) {
-                HStack {
+                HStack(spacing: 8) {
                     Text(notification.title)
-                        .font(.system(size: 15, weight: .semibold, design: .rounded))
-                        .foregroundStyle(Theme.forestGreenDark)
+                        .font(.text(15, weight: .semibold))
+                        .foregroundStyle(Theme.graphite)
                     if !notification.isRead {
-                        Circle().fill(Theme.coral).frame(width: 8, height: 8)
+                        Circle().fill(Theme.forest).frame(width: 6, height: 6)
                     }
                     Spacer()
+                    Text(notification.createdAt, style: .relative)
+                        .font(.text(11))
+                        .foregroundStyle(Theme.stone)
                 }
                 Text(notification.body)
-                    .font(.system(size: 13, design: .rounded))
-                    .foregroundStyle(Theme.warmGray)
+                    .font(.text(13))
+                    .foregroundStyle(Theme.graphiteSoft)
                     .lineLimit(3)
-                Text(notification.createdAt, style: .relative)
-                    .font(.system(size: 11, design: .rounded))
-                    .foregroundStyle(Theme.warmGray.opacity(0.7))
             }
         }
-        .padding(12)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(Theme.forestGreen.opacity(0.18), lineWidth: 1)
-        )
-    }
-}
-
-func colorFor(status: ExpirationStatus) -> Color {
-    switch status {
-    case .fresh: return .green
-    case .soon: return .yellow
-    case .urgent: return .orange
-    case .expired: return .red
-    case .unknown: return .gray
+        .padding(.vertical, 14)
     }
 }

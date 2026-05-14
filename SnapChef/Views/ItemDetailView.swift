@@ -14,8 +14,7 @@ struct ItemDetailView: View {
     @State private var isEditing = false
     @State private var showingAddBatch = false
 
-    var category: FoodCategory? { FoodCategory(rawValue: item.category) }
-    var tint: Color { category?.color ?? Theme.forestGreen }
+    private var category: FoodCategory? { FoodCategory(rawValue: item.category) }
 
     private var sortedBatches: [PantryBatch] {
         item.batches.sorted { lhs, rhs in
@@ -30,48 +29,39 @@ struct ItemDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 18) {
-                headerCard
+            VStack(alignment: .leading, spacing: 32) {
+                titleBlock
 
-                summaryCard
+                summaryRow
 
                 if !item.batches.isEmpty {
-                    batchesCard
+                    batchesSection
                 } else if item.expirationDate != nil {
-                    legacyExpirationCard
+                    legacyExpirationSection
                 }
 
-                metadataCard
+                metaSection
 
                 Button {
                     showingDeleteAlert = true
                 } label: {
                     HStack {
-                        Image(systemName: "trash")
-                        Text("Remove from Pantry")
+                        Image(systemName: "trash").font(.system(size: 13, weight: .semibold))
+                        Text("Remove from pantry")
                     }
-                    .font(.system(size: 16, weight: .semibold, design: .rounded))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(Theme.coral.opacity(0.12))
+                    .font(.text(14, weight: .semibold))
                     .foregroundStyle(Theme.coral)
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(Theme.coral.opacity(0.35), lineWidth: 1)
-                    )
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 13)
+                    .overlay(Capsule().strokeBorder(Theme.coral.opacity(0.30), lineWidth: 1))
                 }
                 .padding(.top, 8)
             }
-            .padding(16)
+            .padding(.horizontal, 22)
+            .padding(.top, 8)
+            .padding(.bottom, 40)
         }
-        .background(
-            ZStack {
-                Theme.appBackgroundGradient.ignoresSafeArea()
-                DecorativeBlobs().ignoresSafeArea()
-            }
-        )
-        .navigationTitle(item.name)
+        .background(Theme.canvas.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -79,6 +69,7 @@ struct ItemDetailView: View {
                     isEditing.toggle()
                 }
                 .fontWeight(.semibold)
+                .foregroundStyle(Theme.graphite)
             }
         }
         .alert("Remove item?", isPresented: $showingDeleteAlert) {
@@ -101,93 +92,57 @@ struct ItemDetailView: View {
         }
     }
 
-    // MARK: - Cards
+    // MARK: - Title
 
-    private var headerCard: some View {
-        VStack(spacing: 12) {
-            ZStack {
+    private var titleBlock: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
                 Circle()
-                    .fill(category?.gradient ?? Theme.primaryGradient)
-                    .frame(width: 110, height: 110)
-                    .shadow(color: tint.opacity(0.35), radius: 16, y: 8)
-                Image(systemName: category?.icon ?? "bag.fill")
-                    .font(.system(size: 48, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .fill(colorFor(status: item.expirationStatus))
+                    .frame(width: 8, height: 8)
+                Text(item.category.uppercased())
+                    .font(.text(11, weight: .semibold))
+                    .tracking(1.2)
+                    .foregroundStyle(Theme.stone)
             }
 
             if isEditing {
                 TextField("Name", text: $item.name)
-                    .font(.title2.weight(.bold))
-                    .multilineTextAlignment(.center)
-                    .textFieldStyle(.roundedBorder)
-                    .padding(.horizontal, 40)
+                    .font(.display(34, weight: .regular))
+                    .foregroundStyle(Theme.graphite)
+                    .textFieldStyle(.plain)
             } else {
                 Text(item.name)
-                    .font(.display(22))
-                    .foregroundStyle(Theme.forestGreenDark)
+                    .font(.display(40, weight: .regular))
+                    .tracking(-0.6)
+                    .foregroundStyle(Theme.graphite)
             }
-
-            Text(item.category)
-                .font(.system(size: 13, weight: .medium, design: .rounded))
-                .foregroundStyle(Theme.warmGray)
         }
-        .frame(maxWidth: .infinity)
-        .padding(20)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 22))
-        .shadow(color: .black.opacity(0.06), radius: 12, y: 4)
     }
 
-    private var summaryCard: some View {
+    // MARK: - Summary
+
+    private var summaryRow: some View {
         HStack(spacing: 0) {
-            summaryTile(
-                icon: "number.circle.fill",
+            MetricTile(
                 value: "\(formatted(item.totalQuantity)) \(item.unit)",
-                label: "Total",
-                color: tint
+                label: "Total"
             )
-            divider
-            summaryTile(
-                icon: "tray.full.fill",
+            verticalRule
+            MetricTile(
                 value: "\(item.batches.isEmpty ? 1 : item.batches.count)",
-                label: item.batches.count == 1 ? "Batch" : "Batches",
-                color: Theme.peach
+                label: item.batches.count == 1 ? "Batch" : "Batches"
             )
-            divider
-            summaryTile(
-                icon: "calendar",
-                value: earliestSummary,
-                label: "Earliest",
-                color: colorFor(status: item.expirationStatus)
-            )
+            verticalRule
+            MetricTile(value: earliestSummary, label: "Earliest")
         }
-        .padding(.vertical, 14)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 18))
-        .shadow(color: .black.opacity(0.05), radius: 8, y: 3)
+        .padding(.vertical, 18)
+        .overlay(Hairline(), alignment: .top)
+        .overlay(Hairline(), alignment: .bottom)
     }
 
-    private var divider: some View {
-        Rectangle()
-            .fill(Theme.forestGreen.opacity(0.18))
-            .frame(width: 1, height: 36)
-    }
-
-    private func summaryTile(icon: String, value: String, label: String, color: Color) -> some View {
-        VStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(color)
-            Text(value)
-                .font(.system(size: 16, weight: .bold, design: .rounded))
-                .foregroundStyle(Theme.forestGreenDark)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-            Text(label)
-                .font(.system(size: 11, weight: .medium, design: .rounded))
-                .foregroundStyle(Theme.warmGray)
-        }
-        .frame(maxWidth: .infinity)
+    private var verticalRule: some View {
+        Rectangle().fill(Theme.hairline).frame(width: 1, height: 28)
     }
 
     private var earliestSummary: String {
@@ -197,110 +152,92 @@ struct ItemDetailView: View {
         return "\(days)d"
     }
 
-    private var batchesCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
+    // MARK: - Batches
+
+    private var batchesSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
             HStack {
-                Label("Batches", systemImage: "square.stack.3d.up.fill")
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
-                    .foregroundStyle(Theme.forestGreen)
-                Spacer()
+                SectionEyebrow(text: "Batches", trailing: "\(item.batches.count)")
                 Button {
                     showingAddBatch = true
                 } label: {
                     HStack(spacing: 4) {
-                        Image(systemName: "plus.circle.fill")
-                        Text("Add Batch")
+                        Image(systemName: "plus").font(.system(size: 11, weight: .semibold))
+                        Text("Add batch")
                     }
-                    .font(.system(size: 13, weight: .semibold, design: .rounded))
-                    .foregroundStyle(Theme.forestGreen)
+                    .font(.text(12, weight: .semibold))
+                    .foregroundStyle(Theme.graphite)
                 }
             }
 
-            VStack(spacing: 8) {
-                ForEach(sortedBatches) { batch in
+            VStack(spacing: 0) {
+                ForEach(Array(sortedBatches.enumerated()), id: \.element.id) { idx, batch in
                     BatchRow(
                         batch: batch,
                         unit: item.unit,
                         isEditing: isEditing,
                         onDelete: { delete(batch) }
                     )
+                    if idx < sortedBatches.count - 1 { Hairline() }
                 }
             }
         }
-        .padding(16)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 18))
-        .shadow(color: .black.opacity(0.05), radius: 8, y: 3)
     }
 
-    // Legacy display for items created before batches existed
     @ViewBuilder
-    private var legacyExpirationCard: some View {
+    private var legacyExpirationSection: some View {
         if let days = item.daysUntilExpiration, let exp = item.expirationDate {
             VStack(alignment: .leading, spacing: 12) {
-                Label("Expiration", systemImage: "calendar.badge.clock")
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
-                    .foregroundStyle(Theme.forestGreen)
-
+                SectionEyebrow(text: "Expiration")
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(exp.formatted(date: .abbreviated, time: .omitted))
-                            .font(.system(size: 17, weight: .medium, design: .rounded))
+                            .font(.text(16, weight: .medium))
+                            .foregroundStyle(Theme.graphite)
                         Text(item.expirationStatus.label)
-                            .font(.caption)
+                            .font(.text(12))
                             .foregroundStyle(colorFor(status: item.expirationStatus))
                     }
                     Spacer()
-                    VStack {
+                    VStack(alignment: .trailing) {
                         Text(days >= 0 ? "\(days)" : "0")
-                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .font(.numeric(28, weight: .semibold))
                             .foregroundStyle(colorFor(status: item.expirationStatus))
                         Text(days == 1 ? "day left" : "days left")
-                            .font(.caption)
-                            .foregroundStyle(Theme.warmGray)
+                            .font(.text(11))
+                            .foregroundStyle(Theme.stone)
                     }
                 }
-
                 Button {
                     showingAddBatch = true
                 } label: {
                     HStack(spacing: 6) {
-                        Image(systemName: "plus.circle.fill")
+                        Image(systemName: "plus").font(.system(size: 11, weight: .semibold))
                         Text("Add another batch")
                     }
-                    .font(.system(size: 13, weight: .semibold, design: .rounded))
-                    .foregroundStyle(Theme.forestGreen)
+                    .font(.text(13, weight: .medium))
+                    .foregroundStyle(Theme.graphiteSoft)
+                    .padding(.vertical, 10)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
-                    .background(Theme.forestGreen.opacity(0.08))
-                    .clipShape(Capsule())
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [4]))
+                            .foregroundStyle(Theme.hairline)
+                    )
                 }
                 .buttonStyle(.plain)
             }
-            .padding(16)
-            .background(Color.white)
-            .clipShape(RoundedRectangle(cornerRadius: 18))
-            .shadow(color: .black.opacity(0.05), radius: 8, y: 3)
         }
     }
 
-    private var metadataCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Label("First added", systemImage: "clock")
-                .font(.system(size: 14, weight: .semibold, design: .rounded))
-                .foregroundStyle(Theme.forestGreen)
+    private var metaSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            SectionEyebrow(text: "First added")
             Text(item.dateAdded.formatted(date: .abbreviated, time: .shortened))
-                .font(.system(size: 15, design: .rounded))
-                .foregroundStyle(Theme.warmGray)
+                .font(.text(14))
+                .foregroundStyle(Theme.graphiteSoft)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 18))
-        .shadow(color: .black.opacity(0.05), radius: 8, y: 3)
     }
-
-    // MARK: - Actions
 
     private func delete(_ batch: PantryBatch) {
         context.delete(batch)
@@ -333,36 +270,29 @@ struct BatchRow: View {
 
     var body: some View {
         VStack(spacing: 10) {
-            HStack(alignment: .center, spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(colorFor(status: batch.expirationStatus).opacity(0.15))
-                        .frame(width: 38, height: 38)
-                    Image(systemName: iconForStatus)
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(colorFor(status: batch.expirationStatus))
-                }
+            HStack(alignment: .center, spacing: 14) {
+                Circle()
+                    .fill(colorFor(status: batch.expirationStatus))
+                    .frame(width: 8, height: 8)
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text(addedRelative.capitalized)
-                        .font(.system(size: 13, weight: .semibold, design: .rounded))
-                        .foregroundStyle(Theme.forestGreenDark)
+                        .font(.text(13, weight: .medium))
+                        .foregroundStyle(Theme.graphite)
 
                     if let exp = batch.expirationDate {
-                        HStack(spacing: 4) {
-                            Image(systemName: "calendar")
-                                .font(.system(size: 10))
+                        HStack(spacing: 6) {
                             Text(exp.formatted(date: .abbreviated, time: .omitted))
-                            Text("•")
+                            Text("·")
                             Text(daysText)
                                 .foregroundStyle(colorFor(status: batch.expirationStatus))
                         }
-                        .font(.system(size: 12, design: .rounded))
-                        .foregroundStyle(Theme.warmGray)
+                        .font(.text(12))
+                        .foregroundStyle(Theme.stone)
                     } else {
                         Text("No expiration")
-                            .font(.system(size: 12, design: .rounded))
-                            .foregroundStyle(Theme.warmGray)
+                            .font(.text(12))
+                            .foregroundStyle(Theme.stone)
                     }
                 }
 
@@ -373,12 +303,10 @@ struct BatchRow: View {
                 Button {
                     showingDeleteAlert = true
                 } label: {
-                    Image(systemName: "trash.fill")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Theme.coral)
+                    Image(systemName: "trash")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Theme.stone)
                         .frame(width: 32, height: 32)
-                        .background(Theme.coral.opacity(0.12))
-                        .clipShape(Circle())
                 }
                 .buttonStyle(.plain)
             }
@@ -392,17 +320,11 @@ struct BatchRow: View {
                     ),
                     displayedComponents: .date
                 )
-                .font(.system(size: 13, design: .rounded))
-                .tint(Theme.forestGreen)
+                .font(.text(13))
+                .tint(Theme.graphite)
             }
         }
-        .padding(12)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(Theme.forestGreen.opacity(0.18), lineWidth: 1)
-        )
+        .padding(.vertical, 14)
         .alert("Remove this batch?", isPresented: $showingDeleteAlert) {
             Button("Remove", role: .destructive, action: onDelete)
             Button("Cancel", role: .cancel) {}
@@ -415,23 +337,19 @@ struct BatchRow: View {
         HStack(spacing: 0) {
             Button {
                 let next = max(0, batch.quantity - 1)
-                if next == 0 {
-                    showingDeleteAlert = true
-                } else {
-                    batch.quantity = next
-                }
+                if next == 0 { showingDeleteAlert = true } else { batch.quantity = next }
             } label: {
                 Image(systemName: "minus")
-                    .font(.system(size: 12, weight: .bold))
-                    .frame(width: 28, height: 28)
-                    .foregroundStyle(Theme.forestGreen)
+                    .font(.system(size: 11, weight: .semibold))
+                    .frame(width: 26, height: 26)
+                    .foregroundStyle(Theme.graphite)
             }
             .buttonStyle(.plain)
 
             Text("\(formatted(batch.quantity)) \(unit)")
-                .font(.system(size: 13, weight: .bold, design: .rounded))
-                .foregroundStyle(Theme.forestGreenDark)
-                .frame(minWidth: 60)
+                .font(.numeric(13, weight: .medium))
+                .foregroundStyle(Theme.graphite)
+                .frame(minWidth: 56)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
 
@@ -439,27 +357,13 @@ struct BatchRow: View {
                 batch.quantity += 1
             } label: {
                 Image(systemName: "plus")
-                    .font(.system(size: 12, weight: .bold))
-                    .frame(width: 28, height: 28)
-                    .foregroundStyle(Theme.forestGreen)
+                    .font(.system(size: 11, weight: .semibold))
+                    .frame(width: 26, height: 26)
+                    .foregroundStyle(Theme.graphite)
             }
             .buttonStyle(.plain)
         }
-        .background(Theme.forestGreen.opacity(0.08))
-        .clipShape(Capsule())
-        .overlay(
-            Capsule().stroke(Theme.forestGreen.opacity(0.2), lineWidth: 1)
-        )
-    }
-
-    private var iconForStatus: String {
-        switch batch.expirationStatus {
-        case .fresh: return "checkmark"
-        case .soon: return "clock"
-        case .urgent: return "exclamationmark"
-        case .expired: return "xmark"
-        case .unknown: return "questionmark"
-        }
+        .overlay(Capsule().strokeBorder(Theme.hairline, lineWidth: 1))
     }
 
     private var addedRelative: String {
@@ -498,13 +402,10 @@ struct AddBatchSheet: View {
         NavigationStack {
             Form {
                 Section("Quantity") {
-                    HStack {
-                        Stepper(value: $quantity, in: 0.25...999, step: 1) {
-                            Text("\(formatted(quantity)) \(unit)")
-                        }
+                    Stepper(value: $quantity, in: 0.25...999, step: 1) {
+                        Text("\(formatted(quantity)) \(unit)")
                     }
                 }
-
                 Section("Expiration") {
                     Toggle("Track expiration", isOn: $hasExpiration)
                     if hasExpiration {
@@ -518,7 +419,7 @@ struct AddBatchSheet: View {
                 }
             }
             .themedFormBackground()
-            .navigationTitle("Add Batch")
+            .navigationTitle("Add batch")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {

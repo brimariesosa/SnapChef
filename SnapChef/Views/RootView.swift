@@ -8,6 +8,10 @@ import SwiftUI
 struct RootView: View {
     @EnvironmentObject var appState: AppState
 
+    init() {
+        AppAppearance.configure()
+    }
+
     var body: some View {
         Group {
             if appState.hasCompletedOnboarding {
@@ -25,36 +29,21 @@ struct MainTabView: View {
     var body: some View {
         TabView(selection: $appState.selectedTab) {
             SnapView()
-                .tabItem {
-                    Label("Snap", systemImage: "camera.fill")
-                }
+                .tabItem { Label("Snap", systemImage: "viewfinder") }
                 .tag(0)
 
             RecipesView()
-                .tabItem {
-                    Label("Recipes", systemImage: "fork.knife")
-                }
+                .tabItem { Label("Recipes", systemImage: "book.closed") }
                 .tag(1)
 
             PantryView()
-                .tabItem {
-                    Label("Pantry", systemImage: "cabinet.fill")
-                }
+                .tabItem { Label("Pantry", systemImage: "tray") }
                 .tag(2)
 
             ProfileView()
-                .tabItem {
-                    Label("Profile", systemImage: "person.fill")
-                }
+                .tabItem { Label("Profile", systemImage: "person") }
                 .tag(3)
         }
-        .tint(Theme.forestGreen)
-        .onAppear {
-            let appearance = UITabBarAppearance()
-            appearance.configureWithDefaultBackground()
-            appearance.backgroundColor = UIColor(Theme.cream.opacity(0.92))
-            UITabBar.appearance().standardAppearance = appearance
-            UITabBar.appearance().scrollEdgeAppearance = appearance
-        }
+        .tint(Theme.graphite)
     }
 }

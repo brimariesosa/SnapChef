@@ -11,72 +11,66 @@ struct RecipeDetailView: View {
     @Query private var pantry: [PantryItem]
     @State private var completedSteps: Set<Int> = []
 
-    var matchPercent: Int {
-        Int(recipe.matchScore(pantry: pantry) * 100)
-    }
-
-    var missing: [RecipeIngredient] {
-        recipe.missingIngredients(pantry: pantry)
-    }
+    var matchPercent: Int { Int(recipe.matchScore(pantry: pantry) * 100) }
+    var missing: [RecipeIngredient] { recipe.missingIngredients(pantry: pantry) }
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 32) {
                 heroSection
                 infoRow
                 matchSection
                 ingredientsSection
                 stepsSection
             }
-            .padding(16)
+            .padding(.horizontal, 22)
+            .padding(.top, 8)
             .padding(.bottom, 40)
         }
-        .background(
-            ZStack {
-                Theme.appBackgroundGradient.ignoresSafeArea()
-                DecorativeBlobs().ignoresSafeArea()
-            }
-        )
-        .navigationTitle(recipe.title)
+        .background(Theme.canvas.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
     }
 
-    private var heroImage: some View {
-        Image(systemName: recipe.imageName)
-            .font(.system(size: 80, weight: .light))
-            .foregroundStyle(.white)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(
-                LinearGradient(
-                    colors: [Theme.forestGreen, Theme.forestGreenLight],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            )
-    }
+    // MARK: - Hero
 
     private var heroSection: some View {
-        VStack(spacing: 12) {
-            heroImage
-                .frame(maxWidth: .infinity)
-                .frame(height: 220)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
+        VStack(alignment: .leading, spacing: 16) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(Theme.canvasSoft)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 22, style: .continuous)
+                            .strokeBorder(Theme.hairline, lineWidth: 1)
+                    )
+                Image(systemName: recipe.imageName)
+                    .font(.system(size: 56, weight: .light))
+                    .foregroundStyle(Theme.graphiteSoft)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 200)
 
-            Text(recipe.description)
-                .font(.system(size: 15))
-                .foregroundStyle(Theme.warmGray)
+            VStack(alignment: .leading, spacing: 10) {
+                Text(recipe.title)
+                    .font(.display(32, weight: .regular))
+                    .tracking(-0.5)
+                    .foregroundStyle(Theme.graphite)
+                    .lineSpacing(2)
+                Text(recipe.description)
+                    .font(.text(15))
+                    .foregroundStyle(Theme.graphiteSoft)
+                    .lineSpacing(3)
+            }
 
             if !recipe.tags.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 6) {
                         ForEach(recipe.tags, id: \.self) { tag in
                             Text(tag)
-                                .font(.system(size: 12, weight: .medium))
+                                .font(.text(11, weight: .medium))
+                                .foregroundStyle(Theme.graphiteSoft)
                                 .padding(.horizontal, 10)
-                                .padding(.vertical, 4)
-                                .background(Theme.sage.opacity(0.3))
-                                .foregroundStyle(Theme.forestGreenDark)
-                                .clipShape(Capsule())
+                                .padding(.vertical, 5)
+                                .overlay(Capsule().strokeBorder(Theme.hairline, lineWidth: 1))
                         }
                     }
                 }
@@ -84,102 +78,94 @@ struct RecipeDetailView: View {
         }
     }
 
+    // MARK: - Info row (4 metrics)
+
     private var infoRow: some View {
         HStack(spacing: 0) {
-            InfoTile(icon: "clock", value: "\(recipe.prepTime)m", label: "Prep")
-            divider
-            InfoTile(icon: "flame", value: "\(recipe.cookTime)m", label: "Cook")
-            divider
-            InfoTile(icon: "person.2", value: "\(recipe.servings)", label: "Servings")
-            divider
-            InfoTile(icon: "chart.bar", value: recipe.difficulty, label: "Level")
+            MetricTile(value: "\(recipe.prepTime)m", label: "Prep")
+            verticalRule
+            MetricTile(value: "\(recipe.cookTime)m", label: "Cook")
+            verticalRule
+            MetricTile(value: "\(recipe.servings)", label: "Servings")
+            verticalRule
+            MetricTile(value: recipe.difficulty, label: "Level")
         }
-        .padding(.vertical, 14)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(Theme.forestGreen.opacity(0.18), lineWidth: 1)
-        )
+        .padding(.vertical, 18)
+        .overlay(Hairline(), alignment: .top)
+        .overlay(Hairline(), alignment: .bottom)
     }
 
-    private var divider: some View {
-        Rectangle()
-            .fill(Theme.forestGreen.opacity(0.18))
-            .frame(width: 1, height: 32)
+    private var verticalRule: some View {
+        Rectangle().fill(Theme.hairline).frame(width: 1, height: 28)
     }
+
+    // MARK: - Match
 
     private var matchSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("Pantry Match")
-                    .font(.system(size: 16, weight: .semibold, design: .rounded))
-                    .foregroundStyle(Theme.forestGreenDark)
+                SectionEyebrow(text: "Pantry match")
                 Spacer()
                 Text("\(matchPercent)%")
-                    .font(.system(size: 18, weight: .bold, design: .rounded))
-                    .foregroundStyle(Theme.forestGreen)
+                    .font(.numeric(15, weight: .semibold))
+                    .foregroundStyle(matchTint)
             }
-
             ProgressView(value: Double(matchPercent) / 100)
-                .tint(Theme.forestGreen)
-
+                .tint(matchTint)
             if !missing.isEmpty {
                 Text("Missing: \(missing.map { $0.name }.joined(separator: ", "))")
-                    .font(.system(size: 13, design: .rounded))
-                    .foregroundStyle(Theme.coral)
+                    .font(.text(13))
+                    .foregroundStyle(Theme.graphiteSoft)
             } else {
-                Text("You have everything!")
-                    .font(.system(size: 13, weight: .semibold, design: .rounded))
-                    .foregroundStyle(Theme.forestGreen)
+                Text("You have everything.")
+                    .font(.text(13, weight: .medium))
+                    .foregroundStyle(Theme.forest)
             }
         }
-        .padding(16)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(Theme.forestGreen.opacity(0.18), lineWidth: 1)
-        )
     }
+
+    private var matchTint: Color {
+        switch matchPercent {
+        case 80...: return Theme.forest
+        case 50..<80: return Theme.accent
+        default: return Theme.stone
+        }
+    }
+
+    // MARK: - Ingredients
 
     private var ingredientsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Ingredients")
-                .font(.system(size: 18, weight: .bold, design: .rounded))
-                .foregroundStyle(Theme.forestGreenDark)
-
-            VStack(spacing: 8) {
-                ForEach(recipe.ingredients, id: \.self) { ing in
+        VStack(alignment: .leading, spacing: 14) {
+            SectionEyebrow(text: "Ingredients", trailing: "\(recipe.ingredients.count)")
+            VStack(spacing: 0) {
+                ForEach(Array(recipe.ingredients.enumerated()), id: \.offset) { idx, ing in
                     let have = pantry.contains { $0.name.lowercased() == ing.name.lowercased() }
-                    HStack {
+                    HStack(spacing: 14) {
                         Image(systemName: have ? "checkmark.circle.fill" : "circle")
-                            .foregroundStyle(have ? Theme.forestGreen : Theme.warmGray)
+                            .font(.system(size: 16))
+                            .foregroundStyle(have ? Theme.forest : Theme.stoneLight)
                         Text(ing.name)
-                            .font(.system(size: 15, design: .rounded))
-                            .foregroundStyle(Theme.forestGreenDark)
-                            .strikethrough(have, color: Theme.warmGray)
+                            .font(.text(15))
+                            .foregroundStyle(Theme.graphite)
+                            .strikethrough(have, color: Theme.stoneLight)
                         Spacer()
                         Text("\(formatted(ing.amount)) \(ing.unit)")
-                            .font(.system(size: 14, design: .rounded))
-                            .foregroundStyle(Theme.warmGray)
+                            .font(.numeric(13))
+                            .foregroundStyle(Theme.stone)
                     }
-                    .padding(.vertical, 4)
+                    .padding(.vertical, 12)
+                    if idx < recipe.ingredients.count - 1 { Hairline() }
                 }
             }
-            .padding(14)
-            .background(Color.white)
-            .clipShape(RoundedRectangle(cornerRadius: 14))
         }
     }
 
-    private var stepsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Instructions")
-                .font(.system(size: 18, weight: .bold, design: .rounded))
-                .foregroundStyle(Theme.forestGreenDark)
+    // MARK: - Steps
 
-            VStack(spacing: 10) {
+    private var stepsSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            SectionEyebrow(text: "Instructions", trailing: "\(recipe.steps.count) steps")
+            VStack(spacing: 12) {
                 ForEach(Array(recipe.steps.enumerated()), id: \.offset) { idx, step in
                     Button {
                         if completedSteps.contains(idx) {
@@ -188,37 +174,39 @@ struct RecipeDetailView: View {
                             completedSteps.insert(idx)
                         }
                     } label: {
-                        HStack(alignment: .top, spacing: 12) {
+                        HStack(alignment: .top, spacing: 14) {
                             ZStack {
                                 Circle()
-                                    .fill(completedSteps.contains(idx) ? Theme.forestGreen : Theme.forestGreen.opacity(0.15))
-                                    .frame(width: 28, height: 28)
+                                    .strokeBorder(
+                                        completedSteps.contains(idx) ? Color.clear : Theme.hairline,
+                                        lineWidth: 1
+                                    )
+                                    .background(
+                                        Circle().fill(
+                                            completedSteps.contains(idx)
+                                            ? AnyShapeStyle(Theme.graphite)
+                                            : AnyShapeStyle(Color.clear)
+                                        )
+                                    )
+                                    .frame(width: 26, height: 26)
                                 if completedSteps.contains(idx) {
                                     Image(systemName: "checkmark")
-                                        .font(.system(size: 12, weight: .bold))
+                                        .font(.system(size: 11, weight: .bold))
                                         .foregroundStyle(.white)
                                 } else {
                                     Text("\(idx + 1)")
-                                        .font(.system(size: 13, weight: .bold, design: .rounded))
-                                        .foregroundStyle(Theme.forestGreen)
+                                        .font(.numeric(12, weight: .semibold))
+                                        .foregroundStyle(Theme.graphiteSoft)
                                 }
                             }
-
                             Text(step)
-                                .font(.system(size: 15, design: .rounded))
-                                .foregroundStyle(Theme.forestGreenDark)
-                                .strikethrough(completedSteps.contains(idx))
+                                .font(.text(15))
+                                .foregroundStyle(Theme.graphite)
+                                .strikethrough(completedSteps.contains(idx), color: Theme.stoneLight)
+                                .lineSpacing(3)
                                 .multilineTextAlignment(.leading)
-
                             Spacer(minLength: 0)
                         }
-                        .padding(12)
-                        .background(Color.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(Theme.forestGreen.opacity(0.18), lineWidth: 1)
-                        )
                     }
                     .buttonStyle(.plain)
                 }
@@ -230,26 +218,5 @@ struct RecipeDetailView: View {
         value.truncatingRemainder(dividingBy: 1) == 0
             ? String(Int(value))
             : String(format: "%.2f", value)
-    }
-}
-
-struct InfoTile: View {
-    let icon: String
-    let value: String
-    let label: String
-
-    var body: some View {
-        VStack(spacing: 4) {
-            Image(systemName: icon)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(Theme.forestGreen)
-            Text(value)
-                .font(.system(size: 14, weight: .bold, design: .rounded))
-                .foregroundStyle(Theme.forestGreenDark)
-            Text(label)
-                .font(.system(size: 11, weight: .medium, design: .rounded))
-                .foregroundStyle(Theme.warmGray)
-        }
-        .frame(maxWidth: .infinity)
     }
 }

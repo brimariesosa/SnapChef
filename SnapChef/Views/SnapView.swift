@@ -25,29 +25,24 @@ struct SnapView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Theme.appBackgroundGradient.ignoresSafeArea()
-                DecorativeBlobs().ignoresSafeArea()
+                Theme.canvas.ignoresSafeArea()
 
-                VStack(spacing: 22) {
-                    heroCard
-
-                    if let image = capturedImage {
-                        capturedImageView(image)
-                    } else {
-                        placeholderView
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 32) {
+                        titleBlock
+                        viewport
+                        actionStack
+                        Spacer(minLength: 0)
                     }
-
-                    Spacer()
-
-                    actionButtons
+                    .padding(.horizontal, 22)
+                    .padding(.top, 8)
+                    .padding(.bottom, 40)
                 }
-                .padding(20)
 
-                if isScanning {
-                    scanningOverlay
-                }
+                if isScanning { scanningOverlay }
             }
-            .navigationTitle("Snap & Scan")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .principal) { Color.clear.frame(height: 1) } }
             .fullScreenCover(isPresented: $showingCamera) {
                 ImagePicker(image: $capturedImage, sourceType: .camera)
                     .ignoresSafeArea()
@@ -88,10 +83,8 @@ struct SnapView: View {
                 set: { if !$0 { scanError = nil } }
             )) {
                 Button("OK", role: .cancel) { scanError = nil }
-            } message: {
-                Text(scanError ?? "")
-            }
-            .alert("Camera Access Needed", isPresented: $cameraPermissionDenied) {
+            } message: { Text(scanError ?? "") }
+            .alert("Camera access needed", isPresented: $cameraPermissionDenied) {
                 Button("Settings") {
                     if let url = URL(string: UIApplication.openSettingsURLString) {
                         UIApplication.shared.open(url)
@@ -104,157 +97,133 @@ struct SnapView: View {
         }
     }
 
-    private var heroCard: some View {
-        VStack(spacing: 6) {
-            Text("Point and snap")
-                .font(.display(28))
-                .foregroundStyle(Theme.forestGreenDark)
-            Text("SnapChef AI identifies every ingredient in seconds.")
-                .font(.system(size: 14, design: .rounded))
-                .foregroundStyle(Theme.warmGray)
-                .multilineTextAlignment(.center)
+    // MARK: - Sections
+
+    private var titleBlock: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Snap.")
+                .font(.display(40, weight: .regular))
+                .tracking(-0.6)
+                .foregroundStyle(Theme.graphite)
+            Text("Point your camera. Claude reads every ingredient in seconds.")
+                .font(.text(14))
+                .foregroundStyle(Theme.stone)
+                .lineSpacing(2)
         }
-        .padding(.top, 8)
     }
 
-    private var placeholderView: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Theme.forestGreen.opacity(0.08),
-                            Theme.mint.opacity(0.16),
-                            Theme.peach.opacity(0.18)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 28, style: .continuous)
-                        .strokeBorder(
-                            Theme.forestGreen.opacity(0.35),
-                            style: StrokeStyle(lineWidth: 2, dash: [10])
-                        )
-                )
-
-            PulsingRing(color: Theme.forestGreen, size: 220)
-
-            VStack(spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(Theme.primaryGradient)
-                        .frame(width: 92, height: 92)
-                        .shadow(color: Theme.forestGreen.opacity(0.35), radius: 14, y: 6)
-                    Image(systemName: "camera.viewfinder")
-                        .font(.system(size: 44, weight: .semibold))
-                        .foregroundStyle(.white)
-                }
-
-                Text("Ready to scan")
-                    .font(.display(18))
-                    .foregroundStyle(Theme.forestGreenDark)
-                Text("Snap or pick a photo to get started")
-                    .font(.system(size: 13, design: .rounded))
-                    .foregroundStyle(Theme.warmGray)
+    private var viewport: some View {
+        Group {
+            if let image = capturedImage {
+                capturedImageView(image)
+            } else {
+                placeholderViewport
             }
         }
-        .frame(maxWidth: .infinity)
-        .frame(height: 300)
+    }
+
+    private var placeholderViewport: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(Theme.bone)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .strokeBorder(Theme.hairline, lineWidth: 1)
+                )
+
+            PulsingRing(color: Theme.graphite.opacity(0.5), size: 200)
+
+            VStack(spacing: 14) {
+                Image(systemName: "viewfinder")
+                    .font(.system(size: 48, weight: .light))
+                    .foregroundStyle(Theme.graphite)
+                Text("Ready to scan")
+                    .font(.display(18, weight: .regular))
+                    .foregroundStyle(Theme.graphite)
+                Text("Take or choose a photo to get started")
+                    .font(.text(13))
+                    .foregroundStyle(Theme.stone)
+            }
+        }
+        .frame(height: 320)
     }
 
     private func capturedImageView(_ image: UIImage) -> some View {
         Image(uiImage: image)
             .resizable()
             .scaledToFill()
-            .frame(height: 300)
+            .frame(height: 320)
             .frame(maxWidth: .infinity)
-            .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .stroke(.white.opacity(0.6), lineWidth: 2)
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .strokeBorder(Theme.hairline, lineWidth: 1)
             )
-            .shadow(color: .black.opacity(0.12), radius: 14, y: 6)
     }
 
-    private var actionButtons: some View {
+    private var actionStack: some View {
         VStack(spacing: 12) {
             Button {
                 CameraPermission.check { granted in
-                    if granted {
-                        showingCamera = true
-                    } else {
-                        cameraPermissionDenied = true
-                    }
+                    if granted { showingCamera = true } else { cameraPermissionDenied = true }
                 }
             } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: "camera.fill")
-                    Text("Take Photo")
+                HStack(spacing: 8) {
+                    Image(systemName: "camera").font(.system(size: 13, weight: .semibold))
+                    Text("Take photo")
                 }
-                .primaryButton()
             }
+            .primaryButton()
 
             Button {
                 showingPhotoLibrary = true
             } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: "photo.on.rectangle")
-                    Text("Choose from Library")
+                HStack(spacing: 8) {
+                    Image(systemName: "photo").font(.system(size: 13, weight: .semibold))
+                    Text("Choose from library")
                 }
-                .secondaryButton()
             }
+            .secondaryButton()
 
-            Button {
-                showingDemoLibrary = true
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "sparkles")
-                    Text("Demo Library")
-                }
-                .font(.system(size: 14, weight: .semibold, design: .rounded))
-                .foregroundStyle(Theme.berry)
-                .padding(.vertical, 8)
-                .padding(.horizontal, 16)
-                .background(Theme.berry.opacity(0.12))
-                .clipShape(Capsule())
-            }
+            HStack {
+                Button("Demo library") { showingDemoLibrary = true }
+                    .font(.text(13, weight: .medium))
+                    .foregroundStyle(Theme.graphiteSoft)
 
-            if capturedImage != nil && !isScanning && detectedItems.isEmpty {
-                Button("Scan Again") {
-                    Task { await scanImage() }
+                if capturedImage != nil && !isScanning && detectedItems.isEmpty {
+                    Spacer()
+                    Button("Scan again") {
+                        Task { await scanImage() }
+                    }
+                    .font(.text(13, weight: .medium))
+                    .foregroundStyle(Theme.forest)
                 }
-                .font(.system(size: 14, design: .rounded))
-                .foregroundStyle(Theme.forestGreen)
             }
+            .padding(.top, 4)
         }
     }
 
     private var scanningOverlay: some View {
         ZStack {
-            Color.black.opacity(0.5).ignoresSafeArea()
-
-            VStack(spacing: 20) {
-                ZStack {
-                    PulsingRing(color: .white, size: 120)
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 36, weight: .bold))
-                        .foregroundStyle(.white)
-                }
-
-                Text("Identifying ingredients...")
-                    .font(.display(18))
+            Color.black.opacity(0.35).ignoresSafeArea()
+            VStack(spacing: 18) {
+                PulsingRing(color: .white, size: 100)
+                    .overlay(
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 22, weight: .semibold))
+                            .foregroundStyle(.white)
+                    )
+                Text("Identifying ingredients…")
+                    .font(.display(17, weight: .regular))
                     .foregroundStyle(.white)
-                Text("AI is analyzing your photo")
-                    .font(.system(size: 13, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.85))
             }
             .padding(36)
             .background(.ultraThinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 24))
+            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         }
     }
+
+    // MARK: - Actions
 
     private func scanImage() async {
         guard let image = capturedImage else { return }
@@ -280,9 +249,6 @@ struct SnapView: View {
 
     private func addSelectedItems(_ confirmed: [DetectedIngredient]) {
         for detected in confirmed {
-            // Prefer the date Claude read off the packaging. If none was
-            // visible, leave it blank — the user fills it in manually from
-            // the pantry detail screen.
             let expDate = detected.detectedExpirationDate
 
             if let existing = pantryItems.first(where: {
@@ -320,8 +286,7 @@ struct DemoLibraryPicker: View {
     @State private var seedingState: SeedState = .idle
 
     enum SeedState: Equatable {
-        case idle
-        case seeding
+        case idle, seeding
         case success(Int)
         case failure(String)
     }
@@ -334,37 +299,36 @@ struct DemoLibraryPicker: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("Tap a photo to scan it. Each one maps to a recipe in your library so you can demo the full flow end-to-end.")
-                        .font(.system(size: 14))
-                        .foregroundStyle(Theme.warmGray)
+                VStack(alignment: .leading, spacing: 24) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Demo library.")
+                            .font(.display(32, weight: .regular))
+                            .tracking(-0.5)
+                            .foregroundStyle(Theme.graphite)
+                        Text("Tap a photo to scan it. Each maps to a recipe so you can demo the full flow.")
+                            .font(.text(13))
+                            .foregroundStyle(Theme.stone)
+                            .lineSpacing(2)
+                    }
 
                     LazyVGrid(columns: columns, spacing: 12) {
                         ForEach(DemoLibrary.photos) { photo in
-                            Button {
-                                onPick(photo)
-                            } label: {
-                                DemoPhotoCard(photo: photo)
-                            }
-                            .buttonStyle(.plain)
+                            Button { onPick(photo) } label: { DemoPhotoCard(photo: photo) }
+                                .buttonStyle(.plain)
                         }
                     }
 
                     seedSection
                 }
-                .padding(16)
+                .padding(.horizontal, 22)
+                .padding(.vertical, 8)
+                .padding(.bottom, 40)
             }
-            .background(
-                ZStack {
-                    Theme.appBackgroundGradient.ignoresSafeArea()
-                    DecorativeBlobs().ignoresSafeArea()
-                }
-            )
-            .navigationTitle("Demo Library")
+            .background(Theme.canvas.ignoresSafeArea())
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
+                    Button("Done") { dismiss() }.foregroundStyle(Theme.graphite)
                 }
             }
         }
@@ -372,24 +336,22 @@ struct DemoLibraryPicker: View {
 
     private var seedSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Seed iOS Photos app")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(Theme.forestGreenDark)
-
-            Text("Saves these demo photos to your device's Photos app so you can pick them through the regular photo library.")
-                .font(.system(size: 13))
-                .foregroundStyle(Theme.warmGray)
+            SectionEyebrow(text: "Seed iOS Photos app")
+            Text("Saves these demo photos to Photos so you can pick them through the regular library flow.")
+                .font(.text(13))
+                .foregroundStyle(Theme.stone)
+                .lineSpacing(2)
 
             Button {
                 seed()
             } label: {
-                HStack {
+                HStack(spacing: 8) {
                     if seedingState == .seeding {
-                        ProgressView().tint(.white)
+                        ProgressView().tint(Theme.graphite).controlSize(.small)
                     } else {
-                        Image(systemName: "square.and.arrow.down.fill")
+                        Image(systemName: "square.and.arrow.down").font(.system(size: 13, weight: .semibold))
                     }
-                    Text(seedingState == .seeding ? "Saving..." : "Seed Demo Photos")
+                    Text(seedingState == .seeding ? "Saving…" : "Seed demo photos")
                 }
                 .secondaryButton()
             }
@@ -397,22 +359,16 @@ struct DemoLibraryPicker: View {
 
             switch seedingState {
             case .success(let count):
-                Label("Saved \(count) photo\(count == 1 ? "" : "s") to Photos.",
-                      systemImage: "checkmark.circle.fill")
-                    .font(.system(size: 13))
-                    .foregroundStyle(.green)
+                Label("Saved \(count) photo\(count == 1 ? "" : "s") to Photos.", systemImage: "checkmark.circle")
+                    .font(.text(12))
+                    .foregroundStyle(Theme.forest)
             case .failure(let message):
-                Label(message, systemImage: "exclamationmark.triangle.fill")
-                    .font(.system(size: 13))
-                    .foregroundStyle(.orange)
-                    .multilineTextAlignment(.leading)
-            default:
-                EmptyView()
+                Label(message, systemImage: "exclamationmark.triangle")
+                    .font(.text(12))
+                    .foregroundStyle(Theme.coral)
+            default: EmptyView()
             }
         }
-        .padding(16)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
         .padding(.top, 8)
     }
 
@@ -420,10 +376,8 @@ struct DemoLibraryPicker: View {
         seedingState = .seeding
         DemoLibrary.seedToPhotoLibrary { result in
             switch result {
-            case .success(let count):
-                seedingState = .success(count)
-            case .failure(let error):
-                seedingState = .failure(error.localizedDescription)
+            case .success(let count): seedingState = .success(count)
+            case .failure(let error): seedingState = .failure(error.localizedDescription)
             }
         }
     }
@@ -434,37 +388,30 @@ struct DemoPhotoCard: View {
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
-            LinearGradient(
-                colors: photo.gradient,
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+            Theme.canvasSoft
 
             Image(systemName: photo.symbol)
-                .font(.system(size: 56, weight: .light))
-                .foregroundStyle(.white.opacity(0.9))
+                .font(.system(size: 48, weight: .light))
+                .foregroundStyle(Theme.graphiteSoft)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 0) {
                 Text(photo.recipeTitle)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .font(.text(13, weight: .semibold))
+                    .foregroundStyle(Theme.graphite)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
             }
-            .padding(10)
+            .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                LinearGradient(
-                    colors: [.black.opacity(0.0), .black.opacity(0.45)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            )
+            .background(.ultraThinMaterial)
         }
         .aspectRatio(1, contentMode: .fit)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-        .shadow(color: .black.opacity(0.08), radius: 4, y: 2)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Theme.hairline, lineWidth: 1)
+        )
     }
 }
 
@@ -507,29 +454,23 @@ struct ScanResultsView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    headerInfo
-
-                    scannedItemsSection
+                VStack(alignment: .leading, spacing: 24) {
+                    titleBlock
+                    detectionList
                 }
-                .padding(16)
+                .padding(.horizontal, 22)
+                .padding(.top, 8)
+                .padding(.bottom, 40)
             }
-            .background(
-                ZStack {
-                    Theme.appBackgroundGradient.ignoresSafeArea()
-                    DecorativeBlobs().ignoresSafeArea()
-                }
-            )
-            .navigationTitle(didAdd ? "Added to Pantry" : "Scan Results")
+            .background(Theme.canvas.ignoresSafeArea())
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button(didAdd ? "Done" : "Cancel") { dismiss() }
+                        .foregroundStyle(Theme.graphite)
                 }
             }
-            .safeAreaInset(edge: .bottom) {
-                bottomActions
-            }
+            .safeAreaInset(edge: .bottom) { bottomActions }
             .sheet(isPresented: $showingAddCustom) {
                 AddCustomDetectionSheet { newItem in
                     items.append(newItem)
@@ -554,16 +495,84 @@ struct ScanResultsView: View {
                 isPresented: $showingRecipeScopeDialog,
                 titleVisibility: .visible
             ) {
-                Button("This photo only") {
-                    dispatchRecipes(.photoOnly)
-                }
-                Button("Photo + my pantry") {
-                    dispatchRecipes(.photoPlusPantry)
-                }
+                Button("This photo only") { dispatchRecipes(.photoOnly) }
+                Button("Photo + my pantry") { dispatchRecipes(.photoPlusPantry) }
                 Button("Cancel", role: .cancel) {}
             } message: {
                 Text("Where should Claude pull the ingredients from?")
             }
+        }
+    }
+
+    private var titleBlock: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(didAdd ? "Added." : "Scan results.")
+                .font(.display(32, weight: .regular))
+                .tracking(-0.5)
+                .foregroundStyle(Theme.graphite)
+            Text(didAdd
+                 ? "Items have been added to your pantry."
+                 : "Tap to edit. Uncheck anything we got wrong.")
+                .font(.text(13))
+                .foregroundStyle(Theme.stone)
+                .lineSpacing(2)
+        }
+    }
+
+    private var detectionList: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionEyebrow(text: "Detected", trailing: "\(items.count)")
+
+            VStack(spacing: 0) {
+                ForEach(Array(items.enumerated()), id: \.element.id) { idx, item in
+                    if editingId == item.id {
+                        EditDetectionRow(
+                            item: bindingFor(item),
+                            onSave: { editingId = nil },
+                            onDelete: {
+                                editingId = nil
+                                items.removeAll { $0.id == item.id }
+                                selected.remove(item.id)
+                            }
+                        )
+                    } else {
+                        DetectionRow(
+                            item: item,
+                            isSelected: selected.contains(item.id),
+                            isAlreadyInPantry: existingItem(for: item) != nil,
+                            onToggle: {
+                                if selected.contains(item.id) {
+                                    selected.remove(item.id)
+                                } else {
+                                    selected.insert(item.id)
+                                }
+                            },
+                            onEdit: { editingId = item.id }
+                        )
+                    }
+                    if idx < items.count - 1 { Hairline() }
+                }
+            }
+
+            Button {
+                showingAddCustom = true
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "plus").font(.system(size: 12, weight: .semibold))
+                    Text("Add item the scan missed")
+                }
+                .font(.text(13, weight: .medium))
+                .foregroundStyle(Theme.graphiteSoft)
+                .padding(.vertical, 12)
+                .frame(maxWidth: .infinity)
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [4]))
+                        .foregroundStyle(Theme.hairline)
+                )
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 8)
         }
     }
 
@@ -572,9 +581,7 @@ struct ScanResultsView: View {
             Button {
                 handleAddTapped()
             } label: {
-                Text(didAdd
-                     ? "Added to Pantry"
-                     : "Add \(selectedItems.count) to Pantry")
+                Text(didAdd ? "Added to pantry" : "Add \(selectedItems.count) to pantry")
             }
             .primaryButton()
             .disabled(selectedItems.isEmpty || didAdd)
@@ -583,17 +590,16 @@ struct ScanResultsView: View {
                 showingRecipeScopeDialog = true
             } label: {
                 HStack(spacing: 8) {
-                    Image(systemName: "fork.knife")
-                        .font(.system(size: 14, weight: .bold))
-                    Text("Get Recipe Ideas")
+                    Image(systemName: "book.closed").font(.system(size: 12, weight: .semibold))
+                    Text("Get recipe ideas")
                 }
             }
             .secondaryButton()
             .disabled(selectedItems.isEmpty)
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 12)
-        .padding(.bottom, 16)
+        .padding(.horizontal, 22)
+        .padding(.top, 14)
+        .padding(.bottom, 18)
         .background(.ultraThinMaterial)
     }
 
@@ -603,11 +609,9 @@ struct ScanResultsView: View {
             scope: scope,
             detectedNames: names
         )
-        appState.selectedTab = 1  // Recipes
+        appState.selectedTab = 1
         dismiss()
     }
-
-    // MARK: - Add flow
 
     private func handleAddTapped() {
         let chosen = selectedItems
@@ -660,78 +664,6 @@ struct ScanResultsView: View {
         withAnimation { didAdd = true }
     }
 
-    private var headerInfo: some View {
-        HStack {
-            Image(systemName: didAdd ? "checkmark.seal.fill" : "sparkles")
-                .foregroundStyle(didAdd ? .green : Theme.accent)
-            Text(didAdd
-                 ? "Items added to pantry."
-                 : "Tap a row to edit. Uncheck anything we got wrong.")
-                .font(.system(size: 14))
-                .foregroundStyle(Theme.warmGray)
-            Spacer()
-        }
-    }
-
-    private var scannedItemsSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            sectionTitle("Scanned Items (\(items.count))")
-
-            VStack(spacing: 8) {
-                ForEach(items) { item in
-                    if editingId == item.id {
-                        EditDetectionRow(
-                            item: bindingFor(item),
-                            onSave: { editingId = nil },
-                            onDelete: {
-                                editingId = nil
-                                items.removeAll { $0.id == item.id }
-                                selected.remove(item.id)
-                            }
-                        )
-                    } else {
-                        DetectionRow(
-                            item: item,
-                            isSelected: selected.contains(item.id),
-                            isAlreadyInPantry: existingItem(for: item) != nil,
-                            onToggle: {
-                                if selected.contains(item.id) {
-                                    selected.remove(item.id)
-                                } else {
-                                    selected.insert(item.id)
-                                }
-                            },
-                            onEdit: { editingId = item.id }
-                        )
-                    }
-                }
-
-                Button {
-                    showingAddCustom = true
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "plus.circle.fill")
-                        Text("Add item the scan missed")
-                    }
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(Theme.forestGreen)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(Theme.forestGreen.opacity(0.08))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-                .buttonStyle(.plain)
-            }
-        }
-    }
-
-    private func sectionTitle(_ text: String) -> some View {
-        Text(text)
-            .font(.system(size: 13, weight: .semibold))
-            .foregroundStyle(Theme.warmGray)
-            .textCase(.uppercase)
-    }
-
     private func bindingFor(_ item: DetectedIngredient) -> Binding<DetectedIngredient> {
         guard let index = items.firstIndex(where: { $0.id == item.id }) else {
             return .constant(item)
@@ -769,23 +701,20 @@ struct DuplicateConfirmationSheet: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
-                    HStack(spacing: 10) {
-                        ZStack {
-                            Circle()
-                                .fill(Theme.sunsetGradient)
-                                .frame(width: 44, height: 44)
-                            Image(systemName: "tray.full.fill")
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundStyle(.white)
-                        }
-                        Text("These items are already in your pantry. Want to add another batch with a fresh expiration date?")
-                            .font(.system(size: 14, design: .rounded))
-                            .foregroundStyle(Theme.warmGray)
+                VStack(alignment: .leading, spacing: 18) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Already in pantry.")
+                            .font(.display(28, weight: .regular))
+                            .tracking(-0.5)
+                            .foregroundStyle(Theme.graphite)
+                        Text("These items already exist. Add another batch with a fresh expiration date?")
+                            .font(.text(13))
+                            .foregroundStyle(Theme.stone)
+                            .lineSpacing(2)
                     }
 
-                    VStack(spacing: 10) {
-                        ForEach(duplicates) { dup in
+                    VStack(spacing: 0) {
+                        ForEach(Array(duplicates.enumerated()), id: \.element.id) { idx, dup in
                             DuplicateRow(
                                 dup: dup,
                                 isOn: Binding(
@@ -793,24 +722,21 @@ struct DuplicateConfirmationSheet: View {
                                     set: { choices[dup.detected.id] = $0 }
                                 )
                             )
+                            if idx < duplicates.count - 1 { Hairline() }
                         }
                     }
 
                     Button(action: onConfirm) {
-                        Text(addCount > 0 ? "Add \(addCount) batch\(addCount == 1 ? "" : "es")" : "Skip All")
-                            .primaryButton()
+                        Text(addCount > 0 ? "Add \(addCount) batch\(addCount == 1 ? "" : "es")" : "Skip all")
                     }
+                    .primaryButton()
                     .padding(.top, 6)
                 }
-                .padding(16)
+                .padding(.horizontal, 22)
+                .padding(.top, 8)
+                .padding(.bottom, 40)
             }
-            .background(
-                ZStack {
-                    Theme.appBackgroundGradient.ignoresSafeArea()
-                    DecorativeBlobs().ignoresSafeArea()
-                }
-            )
-            .navigationTitle("Already in pantry")
+            .background(Theme.canvas.ignoresSafeArea())
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -818,6 +744,7 @@ struct DuplicateConfirmationSheet: View {
                         onCancel()
                         dismiss()
                     }
+                    .foregroundStyle(Theme.graphite)
                 }
             }
         }
@@ -828,51 +755,35 @@ struct DuplicateRow: View {
     let dup: DuplicateChoice
     @Binding var isOn: Bool
 
-    var category: FoodCategory? { FoodCategory(rawValue: dup.existing.category) }
-    var tint: Color { category?.color ?? Theme.forestGreen }
-
     var body: some View {
-        HStack(spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill(category?.gradient ?? Theme.primaryGradient)
-                    .frame(width: 40, height: 40)
-                    .shadow(color: tint.opacity(0.3), radius: 5, y: 2)
-                Image(systemName: category?.icon ?? "bag.fill")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(.white)
-            }
+        HStack(spacing: 14) {
+            Circle()
+                .fill(colorFor(status: dup.existing.expirationStatus))
+                .frame(width: 8, height: 8)
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(dup.existing.name)
-                    .font(.system(size: 15, weight: .bold, design: .rounded))
-                    .foregroundStyle(Theme.forestGreenDark)
+                    .font(.text(15, weight: .medium))
+                    .foregroundStyle(Theme.graphite)
 
                 HStack(spacing: 6) {
                     Text("Currently \(quantityText)")
                     if let suffix = expirationText {
-                        Text("•")
+                        Text("·")
                         Text(suffix)
-                            .foregroundStyle(colorFor(status: dup.existing.expirationStatus))
                     }
                 }
-                .font(.system(size: 12, design: .rounded))
-                .foregroundStyle(Theme.warmGray)
+                .font(.text(12))
+                .foregroundStyle(Theme.stone)
             }
 
             Spacer()
 
             Toggle("", isOn: $isOn)
                 .labelsHidden()
-                .tint(Theme.forestGreen)
+                .tint(Theme.forest)
         }
-        .padding(12)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(tint.opacity(0.18), lineWidth: 1)
-        )
+        .padding(.vertical, 14)
     }
 
     private var quantityText: String {
@@ -904,61 +815,50 @@ struct DetectionRow: View {
         HStack(spacing: 14) {
             Button(action: onToggle) {
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.title2)
-                    .foregroundStyle(isSelected ? Theme.forestGreen : Color.gray.opacity(0.3))
+                    .font(.system(size: 22, weight: .regular))
+                    .foregroundStyle(isSelected ? Theme.forest : Theme.stoneLight)
             }
             .buttonStyle(.plain)
 
-            Image(systemName: FoodCategory(rawValue: item.category)?.icon ?? "bag.fill")
-                .font(.title3)
-                .foregroundStyle(Theme.forestGreen)
-                .frame(width: 36, height: 36)
-                .background(Theme.forestGreen.opacity(0.1))
-                .clipShape(RoundedRectangle(cornerRadius: 10))
-
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 8) {
                     Text(item.name)
-                        .font(.system(size: 16, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.primary)
+                        .font(.text(15, weight: .medium))
+                        .foregroundStyle(Theme.graphite)
 
                     if isAlreadyInPantry {
-                        Text("in pantry")
-                            .font(.system(size: 10, weight: .bold, design: .rounded))
+                        Text("In pantry")
+                            .font(.text(10, weight: .semibold))
+                            .tracking(0.6)
                             .foregroundStyle(Theme.accent)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
-                            .background(Theme.accent.opacity(0.15))
-                            .clipShape(Capsule())
+                            .background(Capsule().fill(Theme.accent.opacity(0.10)))
                     }
                 }
 
-                HStack(spacing: 8) {
+                HStack(spacing: 6) {
                     Text(item.category)
-                        .font(.system(size: 12, design: .rounded))
-                        .foregroundStyle(Theme.warmGray)
-
-                    Text("•")
-                        .foregroundStyle(Theme.warmGray)
-
+                    Text("·")
                     Text("\(Int(item.confidence * 100))% confidence")
-                        .font(.system(size: 12, design: .rounded))
-                        .foregroundStyle(.green)
+                        .foregroundStyle(Theme.forest)
                 }
+                .font(.text(12))
+                .foregroundStyle(Theme.stone)
             }
 
             Spacer()
 
             Button(action: onEdit) {
-                Image(systemName: "pencil.circle.fill")
-                    .font(.title2)
-                    .foregroundStyle(Theme.forestGreen.opacity(0.7))
+                Image(systemName: "pencil")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(Theme.graphiteSoft)
+                    .frame(width: 32, height: 32)
             }
             .buttonStyle(.plain)
         }
-        .padding(12)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .padding(.vertical, 12)
+        .contentShape(Rectangle())
     }
 }
 
@@ -969,14 +869,7 @@ struct EditDetectionRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "pencil")
-                    .foregroundStyle(Theme.forestGreen)
-                Text("Correct item")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Theme.forestGreenDark)
-                Spacer()
-            }
+            SectionEyebrow(text: "Correct item")
 
             TextField("Name", text: $item.name)
                 .textFieldStyle(.roundedBorder)
@@ -988,7 +881,7 @@ struct EditDetectionRow: View {
                 }
             }
             .pickerStyle(.menu)
-            .tint(Theme.forestGreen)
+            .tint(Theme.graphite)
 
             HStack {
                 Button(action: onDelete) {
@@ -1000,20 +893,13 @@ struct EditDetectionRow: View {
                 Spacer()
 
                 Button(action: onSave) {
-                    Text("Done")
-                        .compactPrimaryButton()
+                    Text("Done").compactPrimaryButton()
                 }
                 .buttonStyle(.plain)
                 .disabled(item.name.trimmingCharacters(in: .whitespaces).isEmpty)
             }
         }
-        .padding(14)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Theme.forestGreen.opacity(0.4), lineWidth: 1)
-        )
+        .padding(.vertical, 14)
     }
 }
 
@@ -1040,7 +926,7 @@ struct AddCustomDetectionSheet: View {
                 }
             }
             .themedFormBackground()
-            .navigationTitle("Add Item")
+            .navigationTitle("Add item")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {

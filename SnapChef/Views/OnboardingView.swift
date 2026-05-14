@@ -9,137 +9,120 @@ struct OnboardingView: View {
     @EnvironmentObject var appState: AppState
     @State private var currentPage = 0
 
-    let pages: [OnboardingPage] = [
+    private let pages: [OnboardingPage] = [
         OnboardingPage(
-            icon: "camera.viewfinder",
-            title: "Snap your fridge",
-            subtitle: "Point your camera and let AI identify every ingredient in seconds."
+            eyebrow: "01 — Snap",
+            title: "Snap your fridge.",
+            subtitle: "Point your camera. Claude reads every ingredient and reads the printed expiration when it can."
         ),
         OnboardingPage(
-            icon: "fork.knife.circle.fill",
-            title: "Cook what you have",
-            subtitle: "Get recipe matches based on your pantry, diet, and kitchen equipment."
+            eyebrow: "02 — Cook",
+            title: "Cook what you have.",
+            subtitle: "Get recipe matches based on your pantry, dietary profile, and the appliances you actually own."
         ),
         OnboardingPage(
-            icon: "leaf.fill",
-            title: "Waste nothing",
-            subtitle: "Expiration alerts remind you to use ingredients before they spoil."
+            eyebrow: "03 — Waste nothing.",
+            title: "Use it before it spoils.",
+            subtitle: "Quiet alerts at three, two, and one day out — never an inbox of noise."
         )
-    ]
-
-    let pageGradients: [LinearGradient] = [
-        Theme.primaryGradient,
-        Theme.sunsetGradient,
-        Theme.berryGradient
     ]
 
     var body: some View {
         ZStack {
-            Theme.appBackgroundGradient.ignoresSafeArea()
-            DecorativeBlobs().ignoresSafeArea()
+            Theme.canvas.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                TabView(selection: $currentPage) {
-                    ForEach(0..<pages.count, id: \.self) { index in
-                        OnboardingPageView(
-                            page: pages[index],
-                            gradient: pageGradients[index % pageGradients.count]
-                        )
-                        .tag(index)
-                    }
-                }
-                .tabViewStyle(.page(indexDisplayMode: .never))
-
-                HStack(spacing: 10) {
-                    ForEach(0..<pages.count, id: \.self) { index in
-                        Capsule()
-                            .fill(currentPage == index ? Theme.forestGreen : Theme.forestGreen.opacity(0.18))
-                            .frame(width: currentPage == index ? 24 : 8, height: 8)
-                            .animation(.spring(response: 0.4, dampingFraction: 0.7), value: currentPage)
-                    }
-                }
-                .padding(.bottom, 24)
-
-                VStack(spacing: 12) {
-                    Button {
-                        if currentPage < pages.count - 1 {
-                            withAnimation { currentPage += 1 }
-                        } else {
-                            appState.completeOnboarding()
-                        }
-                    } label: {
-                        HStack(spacing: 8) {
-                            Text(currentPage < pages.count - 1 ? "Next" : "Get Started")
-                            Image(systemName: currentPage < pages.count - 1 ? "arrow.right" : "sparkles")
-                        }
-                        .primaryButton()
-                    }
-
+                // Top bar with skip
+                HStack {
+                    Text("SnapChef")
+                        .font(.text(13, weight: .semibold))
+                        .tracking(1.2)
+                        .foregroundStyle(Theme.graphite)
+                    Spacer()
                     if currentPage < pages.count - 1 {
-                        Button("Skip") {
-                            appState.completeOnboarding()
-                        }
-                        .font(.system(size: 14, weight: .medium, design: .rounded))
-                        .foregroundStyle(Theme.warmGray)
+                        Button("Skip") { appState.completeOnboarding() }
+                            .font(.text(13, weight: .medium))
+                            .foregroundStyle(Theme.stone)
                     }
                 }
                 .padding(.horizontal, 24)
-                .padding(.bottom, 32)
+                .padding(.top, 16)
+
+                TabView(selection: $currentPage) {
+                    ForEach(0..<pages.count, id: \.self) { index in
+                        OnboardingPageView(page: pages[index])
+                            .tag(index)
+                    }
+                }
+                .tabViewStyle(.page(indexDisplayMode: .never))
+                .animation(.easeInOut, value: currentPage)
+
+                // Page indicators
+                HStack(spacing: 6) {
+                    ForEach(0..<pages.count, id: \.self) { index in
+                        Capsule()
+                            .fill(currentPage == index ? Theme.graphite : Theme.hairline)
+                            .frame(width: currentPage == index ? 22 : 6, height: 4)
+                            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: currentPage)
+                    }
+                }
+                .padding(.bottom, 28)
+
+                Button {
+                    if currentPage < pages.count - 1 {
+                        withAnimation { currentPage += 1 }
+                    } else {
+                        appState.completeOnboarding()
+                    }
+                } label: {
+                    HStack(spacing: 8) {
+                        Text(currentPage < pages.count - 1 ? "Continue" : "Get started")
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 12, weight: .semibold))
+                    }
+                }
+                .primaryButton()
+                .padding(.horizontal, 24)
+                .padding(.bottom, 36)
             }
         }
     }
 }
 
 struct OnboardingPage {
-    let icon: String
+    let eyebrow: String
     let title: String
     let subtitle: String
 }
 
 struct OnboardingPageView: View {
     let page: OnboardingPage
-    let gradient: LinearGradient
-
-    @State private var animate = false
 
     var body: some View {
-        VStack(spacing: 32) {
+        VStack(alignment: .leading, spacing: 18) {
             Spacer()
 
-            ZStack {
-                Circle()
-                    .fill(gradient)
-                    .opacity(0.18)
-                    .frame(width: 240, height: 240)
-                    .scaleEffect(animate ? 1.05 : 0.95)
-                    .animation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true), value: animate)
+            Text(page.eyebrow.uppercased())
+                .font(.text(11, weight: .semibold))
+                .tracking(1.4)
+                .foregroundStyle(Theme.stone)
 
-                Circle()
-                    .fill(gradient)
-                    .frame(width: 180, height: 180)
-                    .shadow(color: .black.opacity(0.18), radius: 24, y: 12)
+            Text(page.title)
+                .font(.display(44, weight: .regular))
+                .tracking(-0.8)
+                .foregroundStyle(Theme.graphite)
+                .lineSpacing(2)
+                .fixedSize(horizontal: false, vertical: true)
 
-                Image(systemName: page.icon)
-                    .font(.system(size: 80, weight: .light))
-                    .foregroundStyle(.white)
-            }
-            .onAppear { animate = true }
+            Text(page.subtitle)
+                .font(.text(16))
+                .foregroundStyle(Theme.graphiteSoft)
+                .lineSpacing(4)
 
-            VStack(spacing: 14) {
-                Text(page.title)
-                    .font(.display(34))
-                    .foregroundStyle(Theme.forestGreenDark)
-                    .multilineTextAlignment(.center)
-
-                Text(page.subtitle)
-                    .font(.system(size: 17, design: .rounded))
-                    .foregroundStyle(Theme.warmGray)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
-            }
-
+            Spacer()
             Spacer()
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 24)
     }
 }
-

@@ -23,21 +23,18 @@ struct RecipesView: View {
 
     enum RecipeFilter: String, CaseIterable {
         case all = "All"
-        case highMatch = "High Match"
-        case quick = "Quick (≤20min)"
+        case highMatch = "High match"
+        case quick = "≤20 min"
         case vegetarian = "Vegetarian"
     }
 
-    var filteredRecipes: [Recipe] {
+    private var filteredRecipes: [Recipe] {
         var result = recipes
-
         if !searchText.isEmpty {
             result = result.filter { $0.title.localizedCaseInsensitiveContains(searchText) }
         }
-
         switch selectedFilter {
-        case .all:
-            break
+        case .all: break
         case .highMatch:
             result = result.filter { $0.matchScore(pantry: pantryItems) >= 0.6 }
         case .quick:
@@ -45,53 +42,37 @@ struct RecipesView: View {
         case .vegetarian:
             result = result.filter { $0.tags.contains("vegetarian") || $0.tags.contains("vegan") }
         }
-
         return result
+    }
+
+    private var highMatchCount: Int {
+        recipes.filter { $0.matchScore(pantry: pantryItems) >= 0.6 }.count
     }
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 16) {
-                    headerStats
+                VStack(alignment: .leading, spacing: 32) {
+                    titleBlock
 
-                    generateButton
+                    metricsRow
 
-                    filterChips
+                    refreshSection
 
-                    if isLoading {
-                        ProgressView("Matching recipes...")
-                            .padding(.top, 40)
-                    } else if filteredRecipes.isEmpty {
-                        emptyState
-                    } else {
-                        LazyVStack(spacing: 12) {
-                            ForEach(filteredRecipes) { recipe in
-                                NavigationLink(destination: RecipeDetailView(recipe: recipe)) {
-                                    RecipeCard(recipe: recipe, pantry: pantryItems)
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                    }
+                    filterSection
+
+                    listSection
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 22)
+                .padding(.top, 8)
                 .padding(.bottom, 40)
             }
-            .background(
-                ZStack {
-                    Theme.appBackgroundGradient.ignoresSafeArea()
-                    DecorativeBlobs().ignoresSafeArea()
-                }
-            )
-            .navigationTitle("Recipes")
+            .background(Theme.canvas.ignoresSafeArea())
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .principal) { Color.clear.frame(height: 1) } }
             .searchable(text: $searchText, prompt: "Search recipes")
-            .task {
-                await loadRecipes(forceRefresh: false)
-            }
-            .refreshable {
-                await loadRecipes(forceRefresh: true)
-            }
+            .task { await loadRecipes(forceRefresh: false) }
+            .refreshable { await loadRecipes(forceRefresh: true) }
             .onChange(of: appState.pendingRecipeRequest?.id) { _, newId in
                 guard newId != nil,
                       let request = appState.pendingRecipeRequest else { return }
@@ -103,125 +84,131 @@ struct RecipesView: View {
         }
     }
 
-    private var headerStats: some View {
-        HStack(spacing: 12) {
-            StatCard(
-                value: "\(pantryItems.count)",
-                label: "Ingredients",
-                icon: "cabinet.fill",
-                gradient: LinearGradient(
-                    colors: [Theme.forestGreen, Theme.forestGreenLight],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            )
-            StatCard(
-                value: "\(recipes.count)",
-                label: "Recipes",
-                icon: "fork.knife",
-                gradient: Theme.sunsetGradient
-            )
-            StatCard(
-                value: "\(highMatchCount)",
-                label: "Matches",
-                icon: "star.fill",
-                gradient: Theme.berryGradient
-            )
+    private var titleBlock: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Recipes.")
+                .font(.display(40, weight: .regular))
+                .tracking(-0.6)
+                .foregroundStyle(Theme.graphite)
+            Text(subtitle)
+                .font(.text(14))
+                .foregroundStyle(Theme.stone)
         }
-        .padding(.top, 8)
     }
 
-    private var highMatchCount: Int {
-        recipes.filter { $0.matchScore(pantry: pantryItems) >= 0.6 }.count
+    private var subtitle: String {
+        if recipes.isEmpty { return "Tap below to generate ideas from your pantry." }
+        return "\(recipes.count) ideas, \(highMatchCount) high match."
     }
 
-    private var generateButton: some View {
+    private var metricsRow: some View {
+        HStack(spacing: 0) {
+            MetricTile(value: "\(pantryItems.count)", label: "Ingredients")
+            verticalRule
+            MetricTile(value: "\(recipes.count)", label: "Ideas")
+            verticalRule
+            MetricTile(value: "\(highMatchCount)", label: "Matches")
+        }
+        .padding(.vertical, 18)
+        .overlay(Hairline(), alignment: .top)
+        .overlay(Hairline(), alignment: .bottom)
+    }
+
+    private var verticalRule: some View {
+        Rectangle().fill(Theme.hairline).frame(width: 1, height: 28)
+    }
+
+    private var refreshSection: some View {
         Button {
             Task { await loadRecipes(forceRefresh: true) }
         } label: {
             HStack(spacing: 10) {
                 if isRefreshing {
-                    ProgressView()
-                        .tint(.white)
-                        .controlSize(.small)
+                    ProgressView().tint(.white).controlSize(.small)
                 } else {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 15, weight: .bold))
+                    Image(systemName: "sparkles").font(.system(size: 13, weight: .semibold))
                 }
-                Text(isRefreshing ? "Stirring up ideas..." : "Fresh Ideas From Your Pantry")
+                Text(isRefreshing ? "Stirring up ideas…" : "Generate fresh ideas")
             }
         }
         .primaryButton()
-        .disabled(isLoading || isRefreshing)
-        .opacity(pantryItems.isEmpty ? 0.5 : 1)
+        .disabled(isLoading || isRefreshing || pantryItems.isEmpty)
+        .opacity(pantryItems.isEmpty ? 0.4 : 1)
     }
 
-    private var filterChips: some View {
+    private var filterSection: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 ForEach(RecipeFilter.allCases, id: \.self) { filter in
-                    CategoryChip(
-                        label: filter.rawValue,
-                        isSelected: selectedFilter == filter
-                    ) {
+                    QuietChip(label: filter.rawValue, isSelected: selectedFilter == filter) {
                         selectedFilter = filter
+                    }
+                }
+            }
+            .padding(.horizontal, 1)
+        }
+    }
+
+    @ViewBuilder
+    private var listSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            SectionEyebrow(text: "Suggested", trailing: "\(filteredRecipes.count)")
+
+            if isLoading {
+                loadingState
+            } else if filteredRecipes.isEmpty {
+                emptyState
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(Array(filteredRecipes.enumerated()), id: \.element.id) { idx, recipe in
+                        NavigationLink(destination: RecipeDetailView(recipe: recipe)) {
+                            RecipeRow(recipe: recipe, pantry: pantryItems)
+                        }
+                        .buttonStyle(.plain)
+                        if idx < filteredRecipes.count - 1 { Hairline() }
                     }
                 }
             }
         }
     }
 
-    private var emptyState: some View {
-        VStack(spacing: 18) {
-            ZStack {
-                Circle()
-                    .fill(Theme.primaryGradient)
-                    .frame(width: 130, height: 130)
-                    .shadow(color: Theme.forestGreen.opacity(0.3), radius: 20, y: 8)
-                Image(systemName: "fork.knife")
-                    .font(.system(size: 56, weight: .light))
-                    .foregroundStyle(.white)
-            }
-
-            Text("No matching recipes")
-                .font(.display(20))
-                .foregroundStyle(Theme.forestGreenDark)
-            Text("Add more ingredients to your pantry or adjust your filters.")
-                .font(.system(size: 15, design: .rounded))
-                .foregroundStyle(Theme.warmGray)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 32)
+    private var loadingState: some View {
+        HStack(spacing: 12) {
+            ProgressView().tint(Theme.graphite)
+            Text("Matching recipes to your pantry…")
+                .font(.text(14))
+                .foregroundStyle(Theme.stone)
         }
-        .padding(.vertical, 60)
+        .padding(.vertical, 28)
+    }
+
+    private var emptyState: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("No matches yet.")
+                .font(.display(22, weight: .regular))
+                .foregroundStyle(Theme.graphite)
+            Text("Add ingredients to your pantry, then generate fresh ideas — Claude will pick recipes you can actually make tonight.")
+                .font(.text(14))
+                .foregroundStyle(Theme.stone)
+                .lineSpacing(2)
+        }
+        .padding(.vertical, 24)
     }
 
     private func loadRecipes(
         forceRefresh: Bool,
         biasFrom request: RecipeGenerationRequest? = nil
     ) async {
-        // Show whatever we have cached immediately so the screen never
-        // blanks on cold launch.
         if recipes.isEmpty {
             let cached = cachedRecipes.compactMap { $0.decoded() }
-            if !cached.isEmpty {
-                recipes = cached
-            }
+            if !cached.isEmpty { recipes = cached }
         }
 
-        // Only hit Claude when the user explicitly asks (button, pull
-        // to refresh, post-scan handoff) or when we have nothing to show.
         let shouldFetch = forceRefresh || recipes.isEmpty || request != nil
         guard shouldFetch else { return }
 
-        if recipes.isEmpty {
-            isLoading = true
-        } else {
-            isRefreshing = true
-        }
-        defer {
-            isLoading = false
-            isRefreshing = false
-        }
+        if recipes.isEmpty { isLoading = true } else { isRefreshing = true }
+        defer { isLoading = false; isRefreshing = false }
 
         let pantryForCall: [PantryItem]
         let detectedForCall: [String]?
@@ -249,158 +236,83 @@ struct RecipesView: View {
             persist(recipes)
         } catch let error as ClaudeAPIClient.APIError {
             errorMessage = error.errorDescription
-            if recipes.isEmpty {
-                recipes = sampleRecipes
-            }
+            if recipes.isEmpty { recipes = sampleRecipes }
         } catch {
             errorMessage = error.localizedDescription
-            if recipes.isEmpty {
-                recipes = sampleRecipes
-            }
+            if recipes.isEmpty { recipes = sampleRecipes }
         }
     }
 
     private func persist(_ recipes: [Recipe]) {
-        // Each fresh generation replaces the previous batch so the cache
-        // always reflects the user's latest pantry / preferences.
         let existing = (try? context.fetch(FetchDescriptor<CachedRecipe>())) ?? []
         for entry in existing { context.delete(entry) }
-
         for recipe in recipes {
             guard let blob = CachedRecipe.encode(recipe) else { continue }
-            context.insert(
-                CachedRecipe(sourceURL: recipe.id.uuidString, jsonBlob: blob)
-            )
+            context.insert(CachedRecipe(sourceURL: recipe.id.uuidString, jsonBlob: blob))
         }
         try? context.save()
     }
 }
 
-struct StatCard: View {
-    let value: String
-    let label: String
-    let icon: String
-    let gradient: LinearGradient
+// MARK: - Recipe Row (Notion-style flat row)
 
-    var body: some View {
-        VStack(spacing: 6) {
-            ZStack {
-                Circle()
-                    .fill(gradient)
-                    .frame(width: 38, height: 38)
-                Image(systemName: icon)
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(.white)
-            }
-            Text(value)
-                .font(.system(size: 22, weight: .bold, design: .rounded))
-                .foregroundStyle(Theme.forestGreenDark)
-            Text(label)
-                .font(.system(size: 11, weight: .medium, design: .rounded))
-                .foregroundStyle(Theme.warmGray)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 14)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 18))
-        .overlay(
-            RoundedRectangle(cornerRadius: 18)
-                .stroke(Theme.forestGreen.opacity(0.18), lineWidth: 1)
-        )
-        .shadow(color: .black.opacity(0.06), radius: 8, y: 3)
-    }
-}
-
-struct RecipeCard: View {
+struct RecipeRow: View {
     let recipe: Recipe
     let pantry: [PantryItem]
 
-    var matchPercent: Int {
-        Int(recipe.matchScore(pantry: pantry) * 100)
-    }
+    var matchPercent: Int { Int(recipe.matchScore(pantry: pantry) * 100) }
 
-    var matchGradient: LinearGradient {
+    private var matchTint: Color {
         switch matchPercent {
-        case 80...:
-            return LinearGradient(
-                colors: [Theme.forestGreen, Theme.mint],
-                startPoint: .topLeading, endPoint: .bottomTrailing
-            )
-        case 50..<80:
-            return Theme.sunsetGradient
-        default:
-            return LinearGradient(
-                colors: [Theme.warmGray.opacity(0.85), Theme.warmGray.opacity(0.5)],
-                startPoint: .topLeading, endPoint: .bottomTrailing
-            )
-        }
-    }
-
-    private var cardThumbnail: some View {
-        ZStack {
-            Rectangle().fill(heroGradient)
-            Image(systemName: recipe.imageName)
-                .font(.system(size: 36, weight: .light))
-                .foregroundStyle(.white)
-        }
-    }
-
-    var heroGradient: LinearGradient {
-        switch matchPercent {
-        case 80...:
-            return Theme.primaryGradient
-        case 50..<80:
-            return Theme.sunsetGradient
-        default:
-            return LinearGradient(colors: [Theme.warmGray, Theme.warmGray.opacity(0.6)],
-                                  startPoint: .topLeading, endPoint: .bottomTrailing)
+        case 80...: return Theme.forest
+        case 50..<80: return Theme.accent
+        default: return Theme.stone
         }
     }
 
     var body: some View {
-        HStack(spacing: 14) {
-            cardThumbnail
-                .frame(width: 84, height: 84)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .shadow(color: .black.opacity(0.12), radius: 6, y: 3)
-
+        HStack(alignment: .top, spacing: 16) {
+            thumbnail
             VStack(alignment: .leading, spacing: 6) {
                 Text(recipe.title)
-                    .font(.system(size: 17, weight: .bold, design: .rounded))
-                    .foregroundStyle(Theme.forestGreenDark)
-                    .lineLimit(1)
-
-                Text(recipe.description)
-                    .font(.system(size: 13, design: .rounded))
-                    .foregroundStyle(Theme.warmGray)
+                    .font(.display(17, weight: .regular))
+                    .foregroundStyle(Theme.graphite)
                     .lineLimit(2)
-
-                HStack(spacing: 10) {
+                    .multilineTextAlignment(.leading)
+                Text(recipe.description)
+                    .font(.text(13))
+                    .foregroundStyle(Theme.stone)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                HStack(spacing: 14) {
                     Label("\(recipe.totalTime)m", systemImage: "clock")
                     Label("\(recipe.servings)", systemImage: "person.2")
                     Spacer()
                     Text("\(matchPercent)%")
-                        .font(.system(size: 12, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, 4)
-                        .background(matchGradient)
-                        .clipShape(Capsule())
-                        .shadow(color: .black.opacity(0.12), radius: 4, y: 2)
+                        .font(.numeric(13, weight: .semibold))
+                        .foregroundStyle(matchTint)
                 }
-                .font(.system(size: 12, weight: .medium, design: .rounded))
-                .foregroundStyle(Theme.warmGray)
+                .font(.text(12))
+                .foregroundStyle(Theme.stone)
+                .padding(.top, 2)
             }
-
-            Spacer(minLength: 0)
         }
-        .padding(14)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
-        .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .stroke(Theme.forestGreen.opacity(0.18), lineWidth: 1)
-        )
-        .shadow(color: .black.opacity(0.06), radius: 10, y: 4)
+        .padding(.vertical, 16)
+        .contentShape(Rectangle())
+    }
+
+    private var thumbnail: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Theme.canvasSoft)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .strokeBorder(Theme.hairline, lineWidth: 1)
+                )
+            Image(systemName: recipe.imageName)
+                .font(.system(size: 22, weight: .light))
+                .foregroundStyle(Theme.graphiteSoft)
+        }
+        .frame(width: 64, height: 64)
     }
 }

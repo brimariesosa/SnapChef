@@ -17,51 +17,38 @@ struct ProfileView: View {
     @State private var showingAPIKeySheet = false
     @State private var apiKeyConfigured = KeychainService.getAPIKey() != nil
 
-    var currentProfile: DietaryProfile? {
-        profiles.first
+    private var currentProfile: DietaryProfile? { profiles.first }
+
+    private var expiringCount: Int {
+        pantry.filter { $0.expirationStatus == .urgent || $0.expirationStatus == .soon }.count
     }
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 16) {
-                    headerCard
+                VStack(alignment: .leading, spacing: 32) {
+                    titleBlock
 
-                    statsCard
+                    metricsRow
 
-                    dietaryCard
+                    settingsSection
 
-                    equipmentCard
-
-                    notificationsCard
-
-                    apiKeyCard
-
-                    aboutCard
+                    aboutSection
                 }
-                .padding(16)
+                .padding(.horizontal, 22)
+                .padding(.top, 8)
                 .padding(.bottom, 40)
             }
-            .background(
-                ZStack {
-                    Theme.appBackgroundGradient.ignoresSafeArea()
-                    DecorativeBlobs().ignoresSafeArea()
-                }
-            )
-            .navigationTitle("Profile")
+            .background(Theme.canvas.ignoresSafeArea())
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .principal) { Color.clear.frame(height: 1) } }
             .sheet(isPresented: $showingDietSheet) {
-                if let profile = currentProfile {
-                    DietaryPreferencesView(profile: profile)
-                }
+                if let profile = currentProfile { DietaryPreferencesView(profile: profile) }
             }
-            .sheet(isPresented: $showingEquipmentSheet) {
-                EquipmentView()
-            }
+            .sheet(isPresented: $showingEquipmentSheet) { EquipmentView() }
             .sheet(isPresented: $showingAPIKeySheet, onDismiss: {
                 apiKeyConfigured = KeychainService.getAPIKey() != nil
-            }) {
-                APIKeySettingsView()
-            }
+            }) { APIKeySettingsView() }
             .onAppear {
                 seedEquipmentIfNeeded()
                 seedProfileIfNeeded()
@@ -70,86 +57,75 @@ struct ProfileView: View {
         }
     }
 
-    private var headerCard: some View {
-        VStack(spacing: 14) {
-            ZStack {
-                Circle()
-                    .fill(Theme.primaryGradient)
-                    .frame(width: 110, height: 110)
-                    .shadow(color: Theme.forestGreen.opacity(0.4), radius: 18, y: 8)
-                Image(systemName: "leaf.fill")
-                    .font(.system(size: 48, weight: .semibold))
-                    .foregroundStyle(.white)
-            }
-
-            Text("SnapChef User")
-                .font(.display(22))
-                .foregroundStyle(Theme.forestGreenDark)
-
-            Text("Cooking smarter, wasting less")
-                .font(.system(size: 13, design: .rounded))
-                .foregroundStyle(Theme.warmGray)
+    private var titleBlock: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Profile.")
+                .font(.display(40, weight: .regular))
+                .tracking(-0.6)
+                .foregroundStyle(Theme.graphite)
+            Text("Cook smarter, waste less.")
+                .font(.text(14))
+                .foregroundStyle(Theme.stone)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 28)
-        .background(
-            ZStack {
-                Color.white
-                LinearGradient(
-                    colors: [Theme.peach.opacity(0.18), .clear, Theme.mint.opacity(0.18)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            }
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 22))
-        .shadow(color: .black.opacity(0.05), radius: 12, y: 4)
     }
 
-    private var statsCard: some View {
+    private var metricsRow: some View {
         HStack(spacing: 0) {
-            ProfileStatTile(value: "\(pantry.count)", label: "In Pantry")
-            divider
-            ProfileStatTile(value: "\(expiringCount)", label: "Expiring")
-            divider
-            ProfileStatTile(value: "\(equipment.filter { $0.isAvailable }.count)", label: "Appliances")
+            MetricTile(value: "\(pantry.count)", label: "Items")
+            verticalRule
+            MetricTile(value: "\(expiringCount)", label: "Use soon")
+            verticalRule
+            MetricTile(value: "\(equipment.filter { $0.isAvailable }.count)", label: "Appliances")
         }
-        .padding(.vertical, 16)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(Theme.forestGreen.opacity(0.18), lineWidth: 1)
-        )
-        .shadow(color: .black.opacity(0.05), radius: 8, y: 3)
+        .padding(.vertical, 18)
+        .overlay(Hairline(), alignment: .top)
+        .overlay(Hairline(), alignment: .bottom)
     }
 
-    private var expiringCount: Int {
-        pantry.filter {
-            $0.expirationStatus == .urgent || $0.expirationStatus == .soon
-        }.count
+    private var verticalRule: some View {
+        Rectangle().fill(Theme.hairline).frame(width: 1, height: 28)
     }
 
-    private var divider: some View {
-        Rectangle()
-            .fill(Theme.forestGreen.opacity(0.18))
-            .frame(width: 1, height: 36)
-    }
+    private var settingsSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            SectionEyebrow(text: "Preferences")
 
-    private var dietaryCard: some View {
-        Button {
-            if currentProfile != nil {
-                showingDietSheet = true
+            VStack(spacing: 0) {
+                SettingsRow(
+                    icon: "leaf",
+                    title: "Dietary preferences",
+                    subtitle: dietarySummary
+                ) { showingDietSheet = true }
+
+                Hairline()
+
+                SettingsRow(
+                    icon: "cooktop",
+                    title: "Kitchen equipment",
+                    subtitle: "\(equipment.filter { $0.isAvailable }.count) of \(equipment.count) available"
+                ) { showingEquipmentSheet = true }
+
+                Hairline()
+
+                SettingsRow(
+                    icon: "bell",
+                    title: "Expiration alerts",
+                    subtitle: "Pings you 3, 2, 1 day before anything spoils",
+                    trailingText: "On",
+                    chevron: false,
+                    action: nil
+                )
+
+                Hairline()
+
+                SettingsRow(
+                    icon: "key",
+                    title: "Anthropic API key",
+                    subtitle: apiKeyConfigured ? "Configured" : "Not set — required for scanning",
+                    trailingDot: apiKeyConfigured ? Theme.forest : Theme.coral
+                ) { showingAPIKeySheet = true }
             }
-        } label: {
-            ProfileRow(
-                icon: "leaf.circle.fill",
-                title: "Dietary Preferences",
-                subtitle: dietarySummary,
-                iconColor: Theme.forestGreen
-            )
         }
-        .buttonStyle(.plain)
     }
 
     private var dietarySummary: String {
@@ -163,91 +139,25 @@ struct ProfileView: View {
         return parts.isEmpty ? "No restrictions" : parts.joined(separator: ", ")
     }
 
-    private var equipmentCard: some View {
-        Button {
-            showingEquipmentSheet = true
-        } label: {
-            ProfileRow(
-                icon: "oven.fill",
-                title: "Kitchen Equipment",
-                subtitle: "\(equipment.filter { $0.isAvailable }.count) of \(equipment.count) available",
-                iconColor: Theme.accent
-            )
-        }
-        .buttonStyle(.plain)
-    }
-
-    private var apiKeyCard: some View {
-        Button {
-            showingAPIKeySheet = true
-        } label: {
-            ProfileRow(
-                icon: "key.fill",
-                title: "Anthropic API Key",
-                subtitle: apiKeyConfigured ? "Configured" : "Not set — required for scanning",
-                iconColor: apiKeyConfigured ? Theme.forestGreen : Theme.accent
-            )
-        }
-        .buttonStyle(.plain)
-    }
-
-    private var notificationsCard: some View {
-        HStack {
-            Image(systemName: "bell.fill")
-                .foregroundStyle(Theme.accent)
-                .frame(width: 36, height: 36)
-                .background(Theme.accent.opacity(0.15))
-                .clipShape(RoundedRectangle(cornerRadius: 10))
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Expiration Alerts")
-                    .font(.system(size: 15, weight: .semibold, design: .rounded))
-                    .foregroundStyle(Theme.forestGreenDark)
-                Text("Pings you 3, 2, and 1 day before anything spoils.")
-                    .font(.system(size: 12, design: .rounded))
-                    .foregroundStyle(Theme.warmGray)
+    private var aboutSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            SectionEyebrow(text: "About")
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Snap your fridge. Cook what you have. Waste nothing.")
+                    .font(.display(18, weight: .regular))
+                    .foregroundStyle(Theme.graphite)
+                    .lineSpacing(2)
+                Text("Built by Team 6 — Bri Sosa, Bo Bredenbruecher, Maksymillian Rechnio.")
+                    .font(.text(13))
+                    .foregroundStyle(Theme.stone)
+                Text("ISYS 556/856")
+                    .font(.text(11, weight: .medium))
+                    .tracking(0.6)
+                    .foregroundStyle(Theme.stoneLight)
+                    .padding(.top, 2)
             }
-
-            Spacer()
-
-            Image(systemName: "checkmark.circle.fill")
-                .foregroundStyle(Theme.forestGreen)
+            .padding(.vertical, 8)
         }
-        .padding(14)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(Theme.forestGreen.opacity(0.18), lineWidth: 1)
-        )
-    }
-
-    private var aboutCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("About SnapChef")
-                .font(.system(size: 14, weight: .semibold, design: .rounded))
-                .foregroundStyle(Theme.forestGreen)
-
-            Text("Snap your fridge. Cook what you have. Waste nothing.")
-                .font(.system(size: 15, weight: .semibold, design: .rounded))
-                .foregroundStyle(Theme.forestGreenDark)
-
-            Text("Built by Team 6: Bri Sosa, Bo Bredenbruecher, Maksymillian Rechnio.")
-                .font(.system(size: 12, design: .rounded))
-                .foregroundStyle(Theme.warmGray)
-
-            Text("ISYS 556/856")
-                .font(.system(size: 11, design: .rounded))
-                .foregroundStyle(Theme.warmGray)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(Theme.forestGreen.opacity(0.18), lineWidth: 1)
-        )
     }
 
     private func seedEquipmentIfNeeded() {
@@ -259,66 +169,64 @@ struct ProfileView: View {
     }
 
     private func seedProfileIfNeeded() {
-        if profiles.isEmpty {
-            context.insert(DietaryProfile())
-        }
+        if profiles.isEmpty { context.insert(DietaryProfile()) }
     }
 }
 
-struct ProfileStatTile: View {
-    let value: String
-    let label: String
-    var body: some View {
-        VStack(spacing: 4) {
-            Text(value)
-                .font(.system(size: 22, weight: .bold, design: .rounded))
-                .foregroundStyle(Theme.forestGreenDark)
-            Text(label)
-                .font(.system(size: 11, weight: .medium, design: .rounded))
-                .foregroundStyle(Theme.warmGray)
-        }
-        .frame(maxWidth: .infinity)
-    }
-}
-
-struct ProfileRow: View {
+struct SettingsRow: View {
     let icon: String
     let title: String
     let subtitle: String
-    let iconColor: Color
+    var trailingText: String? = nil
+    var trailingDot: Color? = nil
+    var chevron: Bool = true
+    var action: (() -> Void)? = nil
 
     var body: some View {
+        Group {
+            if let action {
+                Button(action: action) { content }.buttonStyle(.plain)
+            } else {
+                content
+            }
+        }
+    }
+
+    private var content: some View {
         HStack(spacing: 14) {
             Image(systemName: icon)
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(iconColor)
-                .frame(width: 44, height: 44)
-                .background(iconColor.opacity(0.15))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(Theme.graphite)
+                .frame(width: 28)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(title)
-                    .font(.system(size: 15, weight: .semibold, design: .rounded))
-                    .foregroundStyle(Theme.forestGreenDark)
+                    .font(.text(15, weight: .medium))
+                    .foregroundStyle(Theme.graphite)
                 Text(subtitle)
-                    .font(.system(size: 12, design: .rounded))
-                    .foregroundStyle(Theme.warmGray)
-                    .lineLimit(1)
+                    .font(.text(12))
+                    .foregroundStyle(Theme.stone)
+                    .lineLimit(2)
             }
 
             Spacer()
 
-            Image(systemName: "chevron.right")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Theme.warmGray)
+            if let trailingText {
+                Text(trailingText)
+                    .font(.text(13, weight: .medium))
+                    .foregroundStyle(Theme.graphiteSoft)
+            }
+            if let trailingDot {
+                Circle().fill(trailingDot).frame(width: 8, height: 8)
+            }
+            if chevron {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Theme.stoneLight)
+            }
         }
-        .padding(14)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(Theme.forestGreen.opacity(0.18), lineWidth: 1)
-        )
+        .padding(.vertical, 16)
+        .contentShape(Rectangle())
     }
 }
 
@@ -339,13 +247,11 @@ struct DietaryPreferencesView: View {
                             if newValue { profile.isVegetarian = true }
                         }
                 }
-
                 Section("Restrictions") {
                     Toggle("Gluten-free", isOn: $profile.isGlutenFree)
                     Toggle("Dairy-free", isOn: $profile.isDairyFree)
                     Toggle("Nut-free", isOn: $profile.isNutFree)
                 }
-
                 Section("Allergies") {
                     ForEach(profile.allergies, id: \.self) { allergy in
                         HStack {
@@ -359,7 +265,6 @@ struct DietaryPreferencesView: View {
                             }
                         }
                     }
-
                     HStack {
                         TextField("Add allergy", text: $newAllergy)
                         Button("Add") {
@@ -372,18 +277,16 @@ struct DietaryPreferencesView: View {
                         .disabled(newAllergy.trimmingCharacters(in: .whitespaces).isEmpty)
                     }
                 }
-
                 Section {
                     Toggle("Apply to recipe suggestions", isOn: $profile.isActive)
                 }
             }
             .themedFormBackground()
-            .navigationTitle("Dietary Preferences")
+            .navigationTitle("Dietary preferences")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
-                        .fontWeight(.semibold)
+                    Button("Done") { dismiss() }.fontWeight(.semibold)
                 }
             }
         }
@@ -412,12 +315,11 @@ struct EquipmentView: View {
                 }
             }
             .themedFormBackground()
-            .navigationTitle("Kitchen Equipment")
+            .navigationTitle("Kitchen equipment")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
-                        .fontWeight(.semibold)
+                    Button("Done") { dismiss() }.fontWeight(.semibold)
                 }
             }
         }
