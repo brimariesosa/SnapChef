@@ -35,19 +35,16 @@ struct RecipeDetailView: View {
 
     private var heroSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(Theme.canvasSoft)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 22, style: .continuous)
-                            .strokeBorder(Theme.hairline, lineWidth: 1)
-                    )
-                Image(systemName: recipe.imageName)
-                    .font(.system(size: 56, weight: .light))
-                    .foregroundStyle(Theme.graphiteSoft)
+            HStack {
+                Spacer()
+                RecipeThumbnail(
+                    symbol: recipe.imageName,
+                    seed: recipe.title + recipe.tags.joined(),
+                    size: 200
+                )
+                Spacer()
             }
-            .frame(maxWidth: .infinity)
-            .frame(height: 200)
+            .padding(.vertical, 8)
 
             VStack(alignment: .leading, spacing: 10) {
                 Text(recipe.title)

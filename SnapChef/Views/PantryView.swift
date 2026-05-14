@@ -112,13 +112,21 @@ struct PantryView: View {
 
     private var metricsRow: some View {
         HStack(spacing: 0) {
-            MetricTile(value: "\(items.count)", label: "In pantry")
+            MetricTile(value: "\(items.count)", label: "IN PANTRY", tint: Theme.graphite)
             verticalRule
-            MetricTile(value: "\(expiringItems.count)", label: "Use soon")
+            MetricTile(
+                value: "\(expiringItems.count)",
+                label: "USE SOON",
+                tint: expiringItems.isEmpty ? Theme.graphite : Theme.accent
+            )
             verticalRule
-            MetricTile(value: "\(freshCount)", label: "Fresh")
+            MetricTile(
+                value: "\(freshCount)",
+                label: "FRESH",
+                tint: freshCount > 0 ? Theme.forest : Theme.graphite
+            )
         }
-        .padding(.vertical, 18)
+        .padding(.vertical, 20)
         .overlay(Hairline(), alignment: .top)
         .overlay(Hairline(), alignment: .bottom)
     }
@@ -200,10 +208,14 @@ struct PantryView: View {
                 .font(.text(15))
                 .foregroundStyle(Theme.stone)
                 .lineSpacing(2)
-            Button("Add First Item") { showingAddSheet = true }
-                .primaryButton()
-                .frame(maxWidth: 220)
-                .padding(.top, 6)
+            HStack {
+                Button { showingAddSheet = true } label: {
+                    Text("Add First Item").primaryButton()
+                }
+                .buttonStyle(.plain)
+                Spacer()
+            }
+            .padding(.top, 6)
         }
         .padding(.vertical, 28)
     }

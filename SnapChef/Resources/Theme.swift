@@ -184,27 +184,29 @@ extension View {
             .shadow(color: Theme.graphite.opacity(0.10), radius: 18, y: 8)
     }
 
-    // MARK: Buttons (short, tactile, monochrome)
+    // MARK: Buttons (compact, centered, tactile)
 
-    /// Primary CTA — graphite-shadowed forest pill. The ONLY full-width
-    /// primary in the app.
+    /// Primary CTA — short forest pill. Auto-width: hugs its label with
+    /// generous horizontal padding. Wrap in a centering `HStack { Spacer();
+    /// Button … ; Spacer() }` or place inside a `.frame(maxWidth: .infinity)`
+    /// container to center.
     func primaryButton() -> some View {
         self
-            .font(.text(15, weight: .semibold))
+            .font(.text(14, weight: .semibold))
             .foregroundStyle(.white)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 13)
+            .padding(.horizontal, 26)
+            .padding(.vertical, 12)
             .background(
                 Capsule()
                     .fill(Theme.primaryGradient)
                     .overlay(Capsule().fill(Theme.raisedSheen))
             )
             .overlay(Capsule().strokeBorder(Color.white.opacity(0.18), lineWidth: 0.6))
-            .shadow(color: Theme.forestDark.opacity(0.32), radius: 12, x: 0, y: 6)
+            .shadow(color: Theme.forestDark.opacity(0.34), radius: 14, x: 0, y: 8)
             .shadow(color: Theme.graphite.opacity(0.08), radius: 1, x: 0, y: 1)
     }
 
-    /// Compact primary — pill, used inline in rows / sheets.
+    /// Compact primary — even smaller, used inline in rows / sheets.
     func compactPrimaryButton() -> some View {
         self
             .font(.text(13, weight: .semibold))
@@ -219,15 +221,33 @@ extension View {
             .shadow(color: Theme.forestDark.opacity(0.30), radius: 8, x: 0, y: 4)
     }
 
-    /// Secondary — bone surface, hairline border, graphite text.
-    func secondaryButton() -> some View {
+    /// Wide primary — full-width pill. Use inside bottom safe-area insets
+    /// or sheet footers where a stretched button is intentional.
+    func widePrimaryButton() -> some View {
         self
             .font(.text(15, weight: .semibold))
-            .foregroundStyle(Theme.graphite)
+            .foregroundStyle(.white)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
+            .padding(.vertical, 13)
+            .background(
+                Capsule()
+                    .fill(Theme.primaryGradient)
+                    .overlay(Capsule().fill(Theme.raisedSheen))
+            )
+            .overlay(Capsule().strokeBorder(Color.white.opacity(0.18), lineWidth: 0.6))
+            .shadow(color: Theme.forestDark.opacity(0.32), radius: 12, x: 0, y: 6)
+    }
+
+    /// Secondary — bone pill, hairline border, graphite text. Auto-width.
+    func secondaryButton() -> some View {
+        self
+            .font(.text(14, weight: .semibold))
+            .foregroundStyle(Theme.graphite)
+            .padding(.horizontal, 22)
+            .padding(.vertical, 11)
             .background(Capsule().fill(Theme.bone))
             .overlay(Capsule().strokeBorder(Theme.hairline, lineWidth: 1))
+            .shadow(color: Theme.graphite.opacity(0.05), radius: 6, x: 0, y: 3)
     }
 
     /// Quiet text-only button used for tertiary actions ("Skip", "Choose
@@ -352,22 +372,67 @@ struct SectionEyebrow: View {
     }
 }
 
-/// A monochrome metric: big graphite number, tiny grey label. No icon disc.
+/// A metric: big serif number with optional accent tint, tiny grey label.
 struct MetricTile: View {
     let value: String
     let label: String
-    var alignment: HorizontalAlignment = .leading
+    var tint: Color = Theme.graphite
+    var alignment: HorizontalAlignment = .center
 
     var body: some View {
         VStack(alignment: alignment, spacing: 2) {
             Text(value)
                 .font(.display(28, weight: .regular))
-                .foregroundStyle(Theme.graphite)
+                .foregroundStyle(tint)
             Text(label)
-                .font(.text(12))
+                .font(.text(11, weight: .medium))
+                .tracking(0.4)
                 .foregroundStyle(Theme.stone)
         }
         .frame(maxWidth: .infinity, alignment: alignment == .leading ? .leading : .center)
+    }
+}
+
+/// Recipe-style tinted thumbnail. Picks a warm gradient from the recipe's
+/// tags / title so the list reads colourful, not grey.
+struct RecipeThumbnail: View {
+    let symbol: String
+    let seed: String
+    var size: CGFloat = 72
+
+    private var palette: (Color, Color) {
+        let colors: [(Color, Color)] = [
+            (Theme.forest, Theme.mint),       // greens
+            (Theme.peach, Theme.butter),      // sunset
+            (Theme.berry, Theme.plum),        // berry
+            (Theme.sky, Theme.mint),          // ocean
+            (Theme.accent, Theme.peach),      // warm
+            (Theme.forestLight, Theme.sage),  // sage
+        ]
+        let idx = abs(seed.hashValue) % colors.count
+        return colors[idx]
+    }
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [palette.0, palette.1],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+            Image(systemName: symbol)
+                .font(.system(size: size * 0.36, weight: .light))
+                .foregroundStyle(.white.opacity(0.92))
+        }
+        .frame(width: size, height: size)
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.4), lineWidth: 0.5)
+        )
+        .shadow(color: palette.0.opacity(0.25), radius: 10, x: 0, y: 4)
     }
 }
 

@@ -71,13 +71,21 @@ struct ProfileView: View {
 
     private var metricsRow: some View {
         HStack(spacing: 0) {
-            MetricTile(value: "\(pantry.count)", label: "Items")
+            MetricTile(value: "\(pantry.count)", label: "ITEMS", tint: Theme.forest)
             verticalRule
-            MetricTile(value: "\(expiringCount)", label: "Use soon")
+            MetricTile(
+                value: "\(expiringCount)",
+                label: "USE SOON",
+                tint: expiringCount > 0 ? Theme.accent : Theme.graphite
+            )
             verticalRule
-            MetricTile(value: "\(equipment.filter { $0.isAvailable }.count)", label: "Appliances")
+            MetricTile(
+                value: "\(equipment.filter { $0.isAvailable }.count)",
+                label: "APPLIANCES",
+                tint: Theme.berry
+            )
         }
-        .padding(.vertical, 18)
+        .padding(.vertical, 20)
         .overlay(Hairline(), alignment: .top)
         .overlay(Hairline(), alignment: .bottom)
     }

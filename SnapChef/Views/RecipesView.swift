@@ -103,13 +103,17 @@ struct RecipesView: View {
 
     private var metricsRow: some View {
         HStack(spacing: 0) {
-            MetricTile(value: "\(pantryItems.count)", label: "Ingredients")
+            MetricTile(value: "\(pantryItems.count)", label: "INGREDIENTS")
             verticalRule
-            MetricTile(value: "\(recipes.count)", label: "Ideas")
+            MetricTile(value: "\(recipes.count)", label: "IDEAS", tint: Theme.berry)
             verticalRule
-            MetricTile(value: "\(highMatchCount)", label: "Matches")
+            MetricTile(
+                value: "\(highMatchCount)",
+                label: "MATCHES",
+                tint: highMatchCount > 0 ? Theme.forest : Theme.graphite
+            )
         }
-        .padding(.vertical, 18)
+        .padding(.vertical, 20)
         .overlay(Hairline(), alignment: .top)
         .overlay(Hairline(), alignment: .bottom)
     }
@@ -119,21 +123,26 @@ struct RecipesView: View {
     }
 
     private var refreshSection: some View {
-        Button {
-            Task { await loadRecipes(forceRefresh: true) }
-        } label: {
-            HStack(spacing: 10) {
-                if isRefreshing {
-                    ProgressView().tint(.white).controlSize(.small)
-                } else {
-                    Image(systemName: "sparkles").font(.system(size: 13, weight: .semibold))
+        HStack {
+            Spacer()
+            Button {
+                Task { await loadRecipes(forceRefresh: true) }
+            } label: {
+                HStack(spacing: 8) {
+                    if isRefreshing {
+                        ProgressView().tint(.white).controlSize(.small)
+                    } else {
+                        Image(systemName: "sparkles").font(.system(size: 13, weight: .semibold))
+                    }
+                    Text(isRefreshing ? "Stirring up ideas…" : "Generate fresh ideas")
                 }
-                Text(isRefreshing ? "Stirring up ideas…" : "Generate fresh ideas")
+                .primaryButton()
             }
+            .buttonStyle(.plain)
+            .disabled(isLoading || isRefreshing || pantryItems.isEmpty)
+            .opacity(pantryItems.isEmpty ? 0.4 : 1)
+            Spacer()
         }
-        .primaryButton()
-        .disabled(isLoading || isRefreshing || pantryItems.isEmpty)
-        .opacity(pantryItems.isEmpty ? 0.4 : 1)
     }
 
     private var filterSection: some View {
@@ -271,8 +280,12 @@ struct RecipeRow: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 16) {
-            thumbnail
+        HStack(alignment: .top, spacing: 14) {
+            RecipeThumbnail(
+                symbol: recipe.imageName,
+                seed: recipe.title + recipe.tags.joined(),
+                size: 76
+            )
             VStack(alignment: .leading, spacing: 6) {
                 Text(recipe.title)
                     .font(.display(17, weight: .regular))
@@ -284,35 +297,23 @@ struct RecipeRow: View {
                     .foregroundStyle(Theme.stone)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
-                HStack(spacing: 14) {
+                HStack(spacing: 12) {
                     Label("\(recipe.totalTime)m", systemImage: "clock")
                     Label("\(recipe.servings)", systemImage: "person.2")
                     Spacer()
                     Text("\(matchPercent)%")
-                        .font(.numeric(13, weight: .semibold))
-                        .foregroundStyle(matchTint)
+                        .font(.numeric(12, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Capsule().fill(matchTint))
                 }
                 .font(.text(12))
                 .foregroundStyle(Theme.stone)
                 .padding(.top, 2)
             }
         }
-        .padding(.vertical, 16)
+        .padding(.vertical, 14)
         .contentShape(Rectangle())
-    }
-
-    private var thumbnail: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Theme.canvasSoft)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .strokeBorder(Theme.hairline, lineWidth: 1)
-                )
-            Image(systemName: recipe.imageName)
-                .font(.system(size: 22, weight: .light))
-                .foregroundStyle(Theme.graphiteSoft)
-        }
-        .frame(width: 64, height: 64)
     }
 }

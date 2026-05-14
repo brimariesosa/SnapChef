@@ -80,9 +80,9 @@ struct OnboardingView: View {
                         Image(systemName: "arrow.right")
                             .font(.system(size: 12, weight: .semibold))
                     }
+                    .primaryButton()
                 }
-                .primaryButton()
-                .padding(.horizontal, 24)
+                .buttonStyle(.plain)
                 .padding(.bottom, 36)
             }
         }

@@ -124,45 +124,66 @@ struct SnapView: View {
 
     private var placeholderViewport: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Theme.bone)
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [Theme.bone, Theme.canvasSoft],
+                        startPoint: .top, endPoint: .bottom
+                    )
+                )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
                         .strokeBorder(Theme.hairline, lineWidth: 1)
                 )
+                .overlay(
+                    // Subtle warm tint so it doesn't feel sterile
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .fill(
+                            RadialGradient(
+                                colors: [Theme.mint.opacity(0.10), .clear],
+                                center: .center, startRadius: 8, endRadius: 140
+                            )
+                        )
+                )
 
-            PulsingRing(color: Theme.graphite.opacity(0.5), size: 200)
+            PulsingRing(color: Theme.forest.opacity(0.55), size: 160)
 
-            VStack(spacing: 14) {
+            VStack(spacing: 10) {
                 Image(systemName: "viewfinder")
-                    .font(.system(size: 48, weight: .light))
-                    .foregroundStyle(Theme.graphite)
+                    .font(.system(size: 36, weight: .light))
+                    .foregroundStyle(Theme.forest)
                 Text("Ready to scan")
-                    .font(.display(18, weight: .regular))
+                    .font(.display(16, weight: .regular))
                     .foregroundStyle(Theme.graphite)
-                Text("Take or choose a photo to get started")
-                    .font(.text(13))
+                Text("Take or choose a photo")
+                    .font(.text(12))
                     .foregroundStyle(Theme.stone)
             }
         }
-        .frame(height: 320)
+        .frame(maxWidth: 280)
+        .frame(height: 240)
+        .frame(maxWidth: .infinity)
+        .shadow(color: Theme.forestDark.opacity(0.10), radius: 20, x: 0, y: 12)
+        .shadow(color: Theme.graphite.opacity(0.05), radius: 2, x: 0, y: 1)
     }
 
     private func capturedImageView(_ image: UIImage) -> some View {
         Image(uiImage: image)
             .resizable()
             .scaledToFill()
-            .frame(height: 320)
+            .frame(maxWidth: 280)
+            .frame(height: 240)
             .frame(maxWidth: .infinity)
-            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .strokeBorder(Theme.hairline, lineWidth: 1)
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.6), lineWidth: 1)
             )
+            .shadow(color: Theme.graphite.opacity(0.18), radius: 16, x: 0, y: 10)
     }
 
     private var actionStack: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 14) {
             Button {
                 CameraPermission.check { granted in
                     if granted { showingCamera = true } else { cameraPermissionDenied = true }
@@ -172,35 +193,48 @@ struct SnapView: View {
                     Image(systemName: "camera").font(.system(size: 13, weight: .semibold))
                     Text("Take photo")
                 }
+                .primaryButton()
             }
-            .primaryButton()
+            .buttonStyle(.plain)
+            .frame(maxWidth: .infinity)
 
-            Button {
-                showingPhotoLibrary = true
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "photo").font(.system(size: 13, weight: .semibold))
-                    Text("Choose from library")
-                }
-            }
-            .secondaryButton()
-
-            HStack {
-                Button("Demo library") { showingDemoLibrary = true }
-                    .font(.text(13, weight: .medium))
-                    .foregroundStyle(Theme.graphiteSoft)
-
-                if capturedImage != nil && !isScanning && detectedItems.isEmpty {
-                    Spacer()
-                    Button("Scan again") {
-                        Task { await scanImage() }
+            HStack(spacing: 10) {
+                Button {
+                    showingPhotoLibrary = true
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "photo").font(.system(size: 12, weight: .semibold))
+                        Text("Library")
                     }
+                    .secondaryButton()
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    showingDemoLibrary = true
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "sparkles").font(.system(size: 12, weight: .semibold))
+                        Text("Demo")
+                    }
+                    .font(.text(14, weight: .semibold))
+                    .foregroundStyle(Theme.berry)
+                    .padding(.horizontal, 22)
+                    .padding(.vertical, 11)
+                    .background(Capsule().fill(Theme.berry.opacity(0.10)))
+                    .overlay(Capsule().strokeBorder(Theme.berry.opacity(0.22), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+            }
+            .frame(maxWidth: .infinity)
+
+            if capturedImage != nil && !isScanning && detectedItems.isEmpty {
+                Button("Scan again") { Task { await scanImage() } }
                     .font(.text(13, weight: .medium))
                     .foregroundStyle(Theme.forest)
-                }
             }
-            .padding(.top, 4)
         }
+        .frame(maxWidth: .infinity)
     }
 
     private var scanningOverlay: some View {
@@ -582,8 +616,9 @@ struct ScanResultsView: View {
                 handleAddTapped()
             } label: {
                 Text(didAdd ? "Added to pantry" : "Add \(selectedItems.count) to pantry")
+                    .widePrimaryButton()
             }
-            .primaryButton()
+            .buttonStyle(.plain)
             .disabled(selectedItems.isEmpty || didAdd)
 
             Button {
@@ -593,8 +628,14 @@ struct ScanResultsView: View {
                     Image(systemName: "book.closed").font(.system(size: 12, weight: .semibold))
                     Text("Get recipe ideas")
                 }
+                .font(.text(15, weight: .semibold))
+                .foregroundStyle(Theme.graphite)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(Capsule().fill(Theme.bone))
+                .overlay(Capsule().strokeBorder(Theme.hairline, lineWidth: 1))
             }
-            .secondaryButton()
+            .buttonStyle(.plain)
             .disabled(selectedItems.isEmpty)
         }
         .padding(.horizontal, 22)
@@ -728,8 +769,9 @@ struct DuplicateConfirmationSheet: View {
 
                     Button(action: onConfirm) {
                         Text(addCount > 0 ? "Add \(addCount) batch\(addCount == 1 ? "" : "es")" : "Skip all")
+                            .widePrimaryButton()
                     }
-                    .primaryButton()
+                    .buttonStyle(.plain)
                     .padding(.top, 6)
                 }
                 .padding(.horizontal, 22)
