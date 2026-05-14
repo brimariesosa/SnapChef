@@ -3,77 +3,90 @@
    The single source of truth for tokens. Import this in every artifact.
    ========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=DM+Serif+Display&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600;6..72,700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
-  /* ---- BRAND PALETTE — Forest greens (the primary identity) -------------- */
-  --forest:        #226940;   /* primary brand mark */
-  --forest-dark:   #12462A;   /* hover, body text on cream */
-  --forest-light:  #56A56E;   /* accents on dark, gradients */
-  --sage:          #9CC698;   /* soft secondary */
-  --moss:          #6B9A5E;   /* warm-leaning green for camo blends */
-  --basil:         #3F8252;   /* mid green for camo blends */
+  /* ---- BRAND PALETTE — Forest greens (slightly muted, "forest at dusk") -- */
+  --forest:        #1F633E;   /* primary brand mark */
+  --forest-dark:   #104028;   /* hover, body text on canvas */
+  --forest-light:  #5CA272;   /* accents, gradients */
+  --sage:          #A8C4A8;   /* soft secondary */
+  --moss:          #6B9A5E;   /* camo blends */
+  --basil:         #3F8252;   /* camo blends */
 
-  /* ---- WARMTH — Cream + warm neutrals (the kitchen vibe) ----------------- */
-  --cream:         #FCF8F0;   /* page background */
-  --cream-warm:    #FFF2E6;   /* secondary background */
-  --cream-cool:    #F5FAF0;   /* tertiary background */
-  --warm-gray:     #7A7469;   /* meta/secondary text */
-  --warm-gray-2:   #B5AFA3;   /* tertiary text, dividers */
+  /* ---- CANVAS — Warm stone, no yellow cast (Notion/Apple-quiet) ---------- */
+  --canvas:        #F5F5F2;   /* page background */
+  --canvas-soft:   #F0F1ED;   /* secondary background */
+  --canvas-cool:   #EFF1EE;   /* tertiary background */
   --bone:          #FFFFFF;   /* card surface */
-  --ink:           #1F1A12;   /* highest-contrast on cream */
 
-  /* ---- ACCENTS — Sunset palette (for ripe / urgent / energy) ------------- */
-  --accent:        #FF8A4C;   /* primary CTA accent */
-  --coral:         #FF7062;   /* expired / urgent */
-  --peach:         #FFB27A;   /* warm warning */
-  --butter:        #FED56E;   /* "use soon" / pantry category */
-  --mint:          #82DAB2;   /* fresh / produce category */
-  --berry:         #E25C8A;   /* seasoning category, demo highlights */
-  --sky:           #7ABCE8;   /* dairy / seafood */
-  --plum:          #8E60B2;   /* frozen / beverages */
+  /* ---- GRAPHITE — Replaces pitch black, never #000 ----------------------- */
+  --graphite:      #222726;   /* highest-contrast text */
+  --graphite-soft: #4E5452;   /* secondary text */
+  --stone:         #7C8280;   /* meta text */
+  --stone-light:   #BCC0BC;   /* tertiary text, dividers */
+
+  /* ---- Legacy aliases (retained, retuned) -------------------------------- */
+  --cream:         var(--canvas);
+  --cream-warm:    var(--canvas-soft);
+  --cream-cool:    var(--canvas-cool);
+  --warm-gray:     var(--stone);
+  --warm-gray-2:   var(--stone-light);
+  --ink:           var(--graphite);
+
+  /* ---- ACCENTS — slightly desaturated for premium feel ------------------- */
+  --accent:        #F68A54;   /* primary CTA accent */
+  --coral:         #E86C64;   /* expired / urgent */
+  --peach:         #F4B282;   /* warm warning */
+  --butter:        #F0CE76;   /* "use soon" / pantry category */
+  --mint:          #8AD6B2;   /* fresh / produce category */
+  --berry:         #CE6084;   /* seasoning, demo highlights */
+  --sky:           #7CB2D6;   /* dairy / seafood */
+  --plum:          #8A66A8;   /* frozen / beverages */
 
   /* ---- SEMANTIC ---------------------------------------------------------- */
-  --bg:            var(--cream);
-  --bg-2:          var(--cream-warm);
-  --bg-3:          var(--cream-cool);
+  --bg:            var(--canvas);
+  --bg-2:          var(--canvas-soft);
+  --bg-3:          var(--canvas-cool);
   --surface:       var(--bone);
-  --fg:            var(--ink);
-  --fg-1:          var(--forest-dark);
-  --fg-2:          var(--warm-gray);
-  --fg-3:          var(--warm-gray-2);
+  --fg:            var(--graphite);
+  --fg-1:          var(--graphite);
+  --fg-2:          var(--graphite-soft);
+  --fg-3:          var(--stone);
   --brand:         var(--forest);
   --brand-fg:      #FFFFFF;
-  --border:        rgba(34, 105, 64, 0.18);
-  --border-soft:   rgba(34, 105, 64, 0.10);
+  --border:        rgba(34, 39, 38, 0.10);
+  --border-soft:   rgba(34, 39, 38, 0.05);
 
   --status-fresh:  #2BB673;
-  --status-soon:   #F5C24B;
-  --status-urgent: #FF8A4C;
-  --status-expired:#E2553F;
+  --status-soon:   #F0CE76;
+  --status-urgent: #F68A54;
+  --status-expired:#E86C64;
 
-  /* ---- GRADIENTS (linear, top-left → bottom-right) ----------------------- */
-  --grad-primary:  linear-gradient(135deg, #226940 0%, #56A56E 55%, #82DAB2 100%);
-  --grad-sunset:   linear-gradient(135deg, #FF7062 0%, #FFB27A 55%, #FED56E 100%);
-  --grad-berry:    linear-gradient(135deg, #E25C8A 0%, #8E60B2 100%);
-  --grad-bg:       linear-gradient(135deg, #FCF8F0 0%, #FFF2E6 55%, #F5FAF0 100%);
-  --grad-camo:     linear-gradient(135deg, #12462A 0%, #226940 30%, #3F8252 55%, #6B9A5E 78%, #9CC698 100%);
+  /* ---- GRADIENTS (vertical for tactile button sheen) -------------------- */
+  --grad-primary:  linear-gradient(180deg, #104028 0%, #1F633E 55%, #5CA272 100%);
+  --grad-sunset:   linear-gradient(135deg, #E86C64 0%, #F4B282 55%, #F0CE76 100%);
+  --grad-berry:    linear-gradient(135deg, #CE6084 0%, #8A66A8 100%);
+  --grad-bg:       linear-gradient(180deg, #F5F5F2 0%, #F0F1ED 100%);
+  --grad-sheen:    linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0) 50%);
+  --grad-camo:     linear-gradient(135deg, #104028 0%, #1F633E 30%, #3F8252 55%, #6B9A5E 78%, #A8C4A8 100%);
 
   /* ---- TYPOGRAPHY -------------------------------------------------------- */
-  /* Nunito = closest free Google Font to SF Rounded (the iOS app's display) */
-  --font-display:  'Nunito', ui-rounded, -apple-system, 'SF Pro Rounded', system-ui, sans-serif;
-  --font-body:     'Nunito', ui-rounded, -apple-system, 'SF Pro Rounded', system-ui, sans-serif;
-  --font-serif:    'DM Serif Display', Georgia, serif;     /* recipe titles, editorial */
+  /* Newsreader = closest free pairing for iOS New York (display).
+     Inter = closest free pairing for SF Pro (body). */
+  --font-display:  'Newsreader', 'New York', ui-serif, Georgia, serif;
+  --font-body:     'Inter', -apple-system, 'SF Pro Text', system-ui, sans-serif;
+  --font-serif:    'Newsreader', 'New York', ui-serif, Georgia, serif;
   --font-mono:     'JetBrains Mono', ui-monospace, monospace;
 
-  --fs-hero:       44px;   --lh-hero:    1.05;   --fw-hero:    900;
-  --fs-h1:         34px;   --lh-h1:      1.10;   --fw-h1:      800;
-  --fs-h2:         26px;   --lh-h2:      1.15;   --fw-h2:      800;
-  --fs-h3:         20px;   --lh-h3:      1.25;   --fw-h3:      700;
-  --fs-title:      17px;   --lh-title:   1.30;   --fw-title:   700;
-  --fs-body:       15px;   --lh-body:    1.45;   --fw-body:    500;
-  --fs-meta:       13px;   --lh-meta:    1.40;   --fw-meta:    500;
-  --fs-caption:    11px;   --lh-caption: 1.35;   --fw-caption: 700;
+  --fs-hero:       44px;   --lh-hero:    1.05;   --fw-hero:    600;
+  --fs-h1:         34px;   --lh-h1:      1.10;   --fw-h1:      600;
+  --fs-h2:         26px;   --lh-h2:      1.15;   --fw-h2:      600;
+  --fs-h3:         20px;   --lh-h3:      1.25;   --fw-h3:      600;
+  --fs-title:      17px;   --lh-title:   1.30;   --fw-title:   600;
+  --fs-body:       15px;   --lh-body:    1.50;   --fw-body:    400;
+  --fs-meta:       13px;   --lh-meta:    1.45;   --fw-meta:    500;
+  --fs-caption:    11px;   --lh-caption: 1.35;   --fw-caption: 600;
 
   /* ---- SPACING (4-pt scale) --------------------------------------------- */
   --s-1:  4px;
@@ -99,14 +112,14 @@
   --r-9:  28px;   /* hero placeholders */
   --r-pill: 999px;
 
-  /* ---- SHADOWS (warm, low-saturation; never pure black) ----------------- */
-  --shadow-1: 0 2px 8px rgba(31, 26, 18, 0.04);
-  --shadow-2: 0 3px 10px rgba(34, 105, 64, 0.12);
-  --shadow-3: 0 4px 14px rgba(31, 26, 18, 0.06);
-  --shadow-4: 0 8px 20px rgba(34, 105, 64, 0.18);
-  --shadow-5: 0 12px 28px rgba(34, 105, 64, 0.22);
-  --shadow-cta:    0 10px 24px rgba(34, 105, 64, 0.35);
-  --shadow-sunset: 0 10px 24px rgba(255, 112, 98, 0.35);
+  /* ---- SHADOWS (dual neumorphic; graphite, never pure black) ------------ */
+  --shadow-1: 0 1px 2px rgba(34, 39, 38, 0.04);
+  --shadow-2: 0 4px 12px rgba(34, 39, 38, 0.06), 0 1px 2px rgba(34, 39, 38, 0.04);
+  --shadow-3: 0 8px 20px rgba(34, 39, 38, 0.08), 0 1px 2px rgba(34, 39, 38, 0.04);
+  --shadow-4: 0 12px 28px rgba(34, 39, 38, 0.10), 0 1px 2px rgba(34, 39, 38, 0.05);
+  --shadow-5: 0 18px 40px rgba(34, 39, 38, 0.14), 0 2px 4px rgba(34, 39, 38, 0.06);
+  --shadow-cta:    0 14px 28px rgba(16, 64, 40, 0.38), 0 1px 2px rgba(34, 39, 38, 0.10);
+  --shadow-sunset: 0 14px 28px rgba(232, 108, 100, 0.38), 0 1px 2px rgba(34, 39, 38, 0.10);
 
   /* ---- MOTION ----------------------------------------------------------- */
   --ease-spring:  cubic-bezier(0.34, 1.56, 0.64, 1);   /* bouncy, SwiftUI-like */
